@@ -1,23 +1,18 @@
 import { DateTime } from 'luxon'
-import Hash from '@ioc:Adonis/Core/Hash'
-import { v4 as uuidv4 } from 'uuid'
 import {
-  column,
-  beforeSave,
   BaseModel,
-  HasMany,
-  hasMany,
-  HasOne,
-  hasOne,
+  column,
+  BelongsTo,
+  belongsTo,
   beforeCreate,
+  hasMany,
+  HasMany,
 } from '@ioc:Adonis/Lucid/Orm'
-import UserInfo from './UserInfo'
-import OpenAiChat from 'App/Models/OpenAiChat'
-import UserBalance from 'App/Models/UserBalance'
+import { v4 as uuidv4 } from 'uuid'
+import OpenAiModel from 'App/Models/OpenAiModel'
 import UserOperation from 'App/Models/UserOperation'
-import OpenAiImageGeneration from 'App/Models/OpenAiImageGeneration'
 
-export default class User extends BaseModel {
+export default class Pricing extends BaseModel {
   /*
   |--------------------------------------------------------------------------
   | Columns
@@ -30,14 +25,17 @@ export default class User extends BaseModel {
   @column()
   public uuid: string
 
+  @column({ serializeAs: null })
+  public openAiModelId: number
+
   @column()
-  public email: string
+  public reference_value: number
 
-  @column({ serializeAs: null })
-  public password: string
+  @column()
+  public value: number
 
-  @column({ serializeAs: null })
-  public rememberMeToken?: string
+  @column()
+  public variation: string
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
@@ -51,21 +49,12 @@ export default class User extends BaseModel {
   |--------------------------------------------------------------------------
   */
 
-  /* :::::::::::::::::::: has one ::::::::::::::::::::::: */
+  /* :::::::::::::::::::: belongs to :::::::::::::::::::: */
 
-  @hasOne(() => UserInfo, { localKey: 'id' })
-  public info: HasOne<typeof UserInfo>
-
-  @hasOne(() => UserBalance, { localKey: 'id' })
-  public balance: HasOne<typeof UserBalance>
+  @belongsTo(() => OpenAiModel, { foreignKey: 'aiModelId' })
+  public model: BelongsTo<typeof OpenAiModel>
 
   /* :::::::::::::::::::: has many :::::::::::::::::::::: */
-
-  @hasMany(() => OpenAiChat, { localKey: 'id' })
-  public chats: HasMany<typeof OpenAiChat>
-
-  @hasMany(() => OpenAiImageGeneration, { localKey: 'id' })
-  public imageGenerations: HasMany<typeof OpenAiImageGeneration>
 
   @hasMany(() => UserOperation, { localKey: 'id' })
   public operations: HasMany<typeof UserOperation>
@@ -76,16 +65,9 @@ export default class User extends BaseModel {
   |--------------------------------------------------------------------------
   */
 
-  @beforeSave()
-  public static async hashPassword(user: User) {
-    if (user.$dirty.password) {
-      user.password = await Hash.make(user.password)
-    }
-  }
-
   @beforeCreate()
-  public static generateUUID(user: User) {
-    user.uuid = uuidv4()
+  public static generateUUID(pricing: Pricing) {
+    pricing.uuid = uuidv4()
   }
 
   /*
@@ -93,4 +75,20 @@ export default class User extends BaseModel {
   | Methods
   |--------------------------------------------------------------------------
   */
+
+  public static async latestPriceForModelUuid(modelUuid: string): Promise<Pricing> {
+    try {
+      const openAiModel = await OpenAiModel.getModelForUuid(modelUuid)
+      const modelPricing = await Pricing.query()
+        .where('open_ai_model_id', openAiModel.id)
+        .orderBy('id', 'desc')
+        .firstOrFail()
+
+      if (!modelPricing) throw new Error('Valores não encontrados para modelo')
+
+      return modelPricing
+    } catch (error) {
+      throw new Error(error)
+    }
+  }
 }

@@ -10,10 +10,8 @@ import {
 import User from 'App/Models/User'
 import { v4 as uuidv4 } from 'uuid'
 import OpenAiModel from 'App/Models/OpenAiModel'
-import { SoftDeletes } from '@ioc:Adonis/Addons/LucidSoftDeletes'
-import { compose } from '@ioc:Adonis/Core/Helpers'
 
-export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
+export default class OpenAiImageGeneration extends BaseModel {
   /*
   |--------------------------------------------------------------------------
   | Columns
@@ -36,22 +34,19 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   public type: string
 
   @column()
-  public title: string
+  public size: string
 
   @column({ serializeAs: null })
   public behavior: JSON
 
   @column()
-  public messages: JSON
+  public images: JSON
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime
-
-  @column.dateTime({ serializeAs: null })
-  public deletedAt: DateTime | null
 
   /*
   |--------------------------------------------------------------------------
@@ -74,13 +69,13 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   */
 
   @beforeCreate()
-  public static generateUUID(chat: OpenAiChat) {
-    chat.uuid = uuidv4()
+  public static generateUUID(imageGeneration: OpenAiImageGeneration) {
+    imageGeneration.uuid = uuidv4()
   }
 
   @afterCreate()
-  public static changeMessagesDefault(chat: OpenAiChat) {
-    chat.messages = { messages: [] } as any
+  public static changeImagesDefault(imageGeneration: OpenAiImageGeneration) {
+    imageGeneration.images = { images: [] } as any
   }
 
   /*
@@ -89,27 +84,31 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   |--------------------------------------------------------------------------
   */
 
-  public static async createChat(user: User, model: string, behavior: any, type: string) {
+  public static async createImageGeneration(
+    user: User,
+    model: string,
+    behavior: any,
+    type: string,
+    size: string
+  ) {
     try {
       const openAiModel = await OpenAiModel.query()
         .where('uuid', model)
         .andWhere('is_available', true)
-        .first()
+        .firstOrFail()
 
-      if (!openAiModel) throw new Error('Modelo não encontrado ou não disponível')
-
-      const chat = await OpenAiChat.create({
+      const imageGeneration = await OpenAiImageGeneration.create({
         userId: user.id,
         openAiModelId: openAiModel.id,
         type: type,
-        title: 'Nova conversa',
+        size: size,
         behavior: behavior,
-        messages: { messages: [] } as any,
+        images: { images: [] } as any,
       })
 
-      if (!chat) throw new Error('Erro ao criar conversa')
+      if (!imageGeneration) throw new Error('Erro ao geração de imagens')
 
-      return chat
+      return imageGeneration
     } catch (error) {
       return error.message
     }

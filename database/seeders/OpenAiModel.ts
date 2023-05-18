@@ -24,9 +24,15 @@ export default class UserInfoSeeder extends BaseSeeder {
       },
       {
         id: 3,
+        name: 'Whisper',
+        type: 'audio',
+        isAvailable: false,
+      },
+      {
+        id: 4,
         name: 'DALL·E',
         type: 'image',
-        isAvailable: false,
+        isAvailable: true,
       },
     ])
   }

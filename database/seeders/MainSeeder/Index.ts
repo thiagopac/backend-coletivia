@@ -28,6 +28,12 @@ export default class extends BaseSeeder {
     await this.runSeeder(await import('../AdminInfo'))
     await this.runSeeder(await import('../OpenAiModel'))
     await this.runSeeder(await import('../OpenAiChat'))
-    await this.runSeeder(await import('../OpenAiChatMessage'))
+    await this.runSeeder(await import('../UserBalance'))
+    await this.runSeeder(await import('../UserOperation'))
+    await this.runSeeder(await import('../Pricing'))
+    await this.runSeeder(await import('../UserApiToken')) //para manter token de acesso fixo durante desenvolvimento
+    await this.runSeeder(await import('../AdminApiToken')) //para manter token de acesso fixo durante desenvolvimento
+    await this.runSeeder(await import('../CurrencyRate'))
+    await this.runSeeder(await import('../RechargeType'))
   }
 }
