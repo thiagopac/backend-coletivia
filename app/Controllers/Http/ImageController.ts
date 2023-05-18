@@ -6,16 +6,10 @@ import axios from 'axios'
 import Env from '@ioc:Adonis/Core/Env'
 import UserOperation from 'App/Models/UserOperation'
 import OpenAiImageGeneration from 'App/Models/OpenAiImageGeneration'
+import { GoogleTranslator } from '@translate-tools/core/translators/GoogleTranslator'
 
 const OPENAI_API_KEY = Env.get('OPENAI_API_KEY')
 const OPENAI_API_IMAGE_GENERATIONS_URL = `${Env.get('OPENAI_API_IMAGE_GENERATIONS_URL')}`
-
-const headers = {
-  'Content-Type': 'text/event-stream',
-  'Connection': 'keep-alive',
-  'Cache-Control': 'no-cache',
-  'Access-Control-Allow-Origin': '*',
-}
 
 export default class ImageController {
   public async createImageGenerationFree({ auth, request, response }: HttpContextContract) {
@@ -57,9 +51,16 @@ export default class ImageController {
   public async createImageGeneration({ auth, request, response }: HttpContextContract) {
     try {
       const user = auth.use('user').user!
-      const { size, prompt, variations } = request.body()
+      const { size, prompt, variations, translate } = request.body()
+      const translator = new GoogleTranslator()
+      let text = prompt
 
-      //enquanto só há o DALL·E, selecionar direto do banco de dados, depois deixar usuário escolher entre opções de models de imagem
+      // Translate single string
+      if (translate === true) {
+        text = await translator.translate(prompt, 'pt-br', 'en-us').then((translate) => translate)
+      }
+
+      // //enquanto só há o DALL·E, selecionar direto do banco de dados, depois deixar usuário escolher entre opções de models de imagem
       const openAiModel = await OpenAiModel.query()
         .where('type', 'image')
         .orderBy('id', 'desc')
@@ -80,7 +81,7 @@ export default class ImageController {
         .firstOrFail()
 
       const data = {
-        prompt: prompt,
+        prompt: text,
         n: variations,
         size: size,
         // response_format: 'b64_json',

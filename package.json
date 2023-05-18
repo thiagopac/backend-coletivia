@@ -59,6 +59,7 @@
     "@adonisjs/core": "^5.9.0",
     "@adonisjs/lucid": "^18.3.0",
     "@adonisjs/repl": "^3.1.11",
+    "@translate-tools/core": "^0.2.14",
     "adonis-lucid-soft-deletes": "^1.4.3",
     "axios": "^1.4.0",
     "currency-converter-lt": "^2.0.0-beta.0",
