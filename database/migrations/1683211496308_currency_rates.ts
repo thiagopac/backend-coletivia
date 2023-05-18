@@ -1,16 +1,14 @@
 import BaseSchema from '@ioc:Adonis/Lucid/Schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'open_ai_models'
+  protected tableName = 'currency_rates'
 
   public async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id').primary()
-      table.uuid('uuid').notNullable().unique()
-      table.string('name').notNullable()
-      table.string('release').nullable()
-      table.enum('type', ['text', 'image', 'audio']).notNullable()
-      table.boolean('is_available').defaultTo(0)
+      table.string('from').notNullable()
+      table.string('to').notNullable()
+      table.decimal('rate', 4, 2).notNullable().defaultTo(0)
       table.timestamps()
     })
   }
