@@ -65,7 +65,7 @@ Route.group(() => {
       Route.post('create-chat-free', 'ChatController.createChatFree')
       Route.post('create-chat-legal-to-informal', 'ChatController.createChatLegalToInformal')
       Route.post('create-chat-informal-to-formal', 'ChatController.createChatInformalToFormal')
-      Route.get('list', 'ChatController.list')
+      Route.get('list/:type', 'ChatController.list')
       Route.get(':uuid', 'ChatController.retrieveChat')
       Route.get(':uuid/messages', 'ChatController.messages')
       Route.post('send-messages', 'ChatController.createMessage')

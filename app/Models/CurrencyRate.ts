@@ -1,5 +1,6 @@
 import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm'
 import { DateTime } from 'luxon'
+
 const CC = require('currency-converter-lt')
 
 export default class CurrencyRate extends BaseModel {
