@@ -116,12 +116,13 @@ export default class ChatController {
     }
   }
 
-  public async list({ auth, response }: HttpContextContract) {
+  public async list({ auth, params, response }: HttpContextContract) {
     try {
       const user = auth.use('user').user
       const chats = await OpenAiChat.query()
         .select(['uuid', 'title', 'created_at', 'updated_at'])
         .where('user_id', user!.id)
+        .andWhere('type', '=', params.type)
         .orderBy('id', 'desc')
 
       if (!chats) throw new Error('Nenhuma conversa encontrada')
