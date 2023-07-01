@@ -1,7 +1,7 @@
 import BaseSchema from '@ioc:Adonis/Lucid/Schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'open_ai_chats'
+  protected tableName = 'open_ai_image_generations'
 
   public async up() {
     this.schema.createTable(this.tableName, (table) => {
@@ -21,11 +21,10 @@ export default class extends BaseSchema {
         .inTable('users')
         .onDelete('CASCADE')
       table.string('type').notNullable()
-      table.string('title').notNullable()
+      table.string('size').notNullable()
       table.json('behavior').notNullable()
-      table.json('messages').notNullable()
+      table.json('images').notNullable()
       table.timestamps()
-      table.timestamp('deleted_at', { useTz: true }).nullable()
     })
   }
 
@@ -33,4 +32,4 @@ export default class extends BaseSchema {
     this.schema.dropTable(this.tableName)
   }
 }
-// manter tipos de chat em string até que seja possível criar um enum
+// manter tipos de geração de imagens em string até que seja possível criar um enum

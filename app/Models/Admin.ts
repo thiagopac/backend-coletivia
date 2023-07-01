@@ -43,8 +43,6 @@ export default class Admin extends BaseModel {
   @hasOne(() => AdminInfo, { localKey: 'id' })
   public info: HasOne<typeof AdminInfo>
 
-  /* :::::::::::::::::::: has many :::::::::::::::::::::: */
-
   /*
   |--------------------------------------------------------------------------
   | Hooks

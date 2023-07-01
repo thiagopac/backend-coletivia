@@ -2,9 +2,20 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios'
 import Env from '@ioc:Adonis/Core/Env'
 import { Stream } from 'stream'
+import OpenAiUtils from '../../../Utils/OpenAiUtils'
+import UserOperation from 'App/Models/UserOperation'
+import OpenAiModel from 'App/Models/OpenAiModel'
+import Pricing from 'App/Models/Pricing'
+
+const headers = {
+  'Content-Type': 'text/event-stream',
+  'Connection': 'keep-alive',
+  'Cache-Control': 'no-cache',
+  'Access-Control-Allow-Origin': '*',
+}
 
 const OPENAI_API_KEY = Env.get('OPENAI_API_KEY')
-const OPENAI_API_CHAT_URL = `${Env.get('OPENAI_API_CHAT_URL')}`
+const OPENAI_API_CHAT_COMPLETIONS_URL = `${Env.get('OPENAI_API_CHAT_COMPLETIONS_URL')}`
 
 export default class GenerativeAITextController {
   public async promptSingle({ auth, request, response }: HttpContextContract) {
@@ -26,7 +37,7 @@ export default class GenerativeAITextController {
     }
 
     try {
-      const openaiResponse = await axios.post(OPENAI_API_CHAT_URL, data, config)
+      const openaiResponse = await axios.post(OPENAI_API_CHAT_COMPLETIONS_URL, data, config)
       const message = openaiResponse?.data?.choices?.[0]?.message ?? ''
       return { result: message }
     } catch (error) {
@@ -35,33 +46,34 @@ export default class GenerativeAITextController {
   }
 
   public async promptStream({ auth, request, response }: HttpContextContract) {
-    const { messages } = request.body()
+    const user = auth.use('user').user!
+    const { messages, model } = request.body()
+    const openAiModel = await OpenAiModel.getModelForUuid(model)
+    const modelPricing = await Pricing.latestPriceForModelUuid(model)
+    const payloadTokensCost = OpenAiUtils.countTokens(JSON.stringify(messages).trim())
+    let chunkCount = 0
+    let responseTokensCost = 0
+    let totalTokensCost = 0
 
     const config: AxiosRequestConfig = {
       method: 'post',
-      url: OPENAI_API_CHAT_URL,
+      url: OPENAI_API_CHAT_COMPLETIONS_URL,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       data: {
-        messages: [{ role: 'system', content: 'You are a helpful assistant.' }, ...messages],
-        max_tokens: 60,
+        // messages: [{ role: 'system', content: 'You are a helpful assistant.' }, ...messages],
+        messages: messages,
         stream: true,
-        model: 'gpt-3.5-turbo',
+        model: openAiModel.release,
         temperature: 1,
       },
       responseType: 'stream',
     }
 
     try {
-      response.response.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Connection': 'keep-alive',
-        'Cache-Control': 'no-cache',
-        'Access-Control-Allow-Origin': '*',
-      })
-
+      response.response.writeHead(200, headers)
       const openaiResponse: AxiosResponse<unknown> = await axios(config)
 
       if (typeof openaiResponse.data !== 'object' || !(openaiResponse.data instanceof Stream)) {
@@ -69,10 +81,24 @@ export default class GenerativeAITextController {
       }
 
       openaiResponse.data.on('data', (chunk) => {
+        chunkCount++
         response.response.write(chunk.toString())
       })
 
       openaiResponse.data.on('end', () => {
+        responseTokensCost = chunkCount - 2 //starting and closing chunks must be removed from the counter
+        totalTokensCost = payloadTokensCost + responseTokensCost
+
+        const totalTokenCurrencyCost = totalTokensCost * (modelPricing.value / 1000)
+
+        UserOperation.createOperationSpending(
+          user,
+          totalTokenCurrencyCost,
+          modelPricing.id,
+          'fake_stream',
+          0
+        )
+
         response.response.end()
       })
     } catch (error) {
@@ -80,13 +106,15 @@ export default class GenerativeAITextController {
     }
   }
 
-  public async fakeStream({ auth, response }: HttpContextContract) {
-    const headers = {
-      'Content-Type': 'text/event-stream',
-      'Connection': 'keep-alive',
-      'Cache-Control': 'no-cache',
-      'Access-Control-Allow-Origin': '*',
-    }
+  public async fakeStream({ auth, request, response }: HttpContextContract) {
+    const user = auth.use('user').user!
+    const { prompt, messages, chat } = request.body()
+    // const modelPricing = await Pricing.latestPriceForModelUuid(model)
+
+    // const payloadTokensCost = OpenAiUtils.countTokens(JSON.stringify(messages).trim())
+    const payloadTokensCost = OpenAiUtils.countTokens(prompt.trim())
+    let responseTokensCost = 0
+    let totalTokensCost = 0
 
     response.response.writeHead(200, headers)
 
@@ -118,8 +146,22 @@ export default class GenerativeAITextController {
       return 'data: [DONE]\n\n'
     }
 
-    const numChunks = Math.floor(Math.random() * (200 - 30 + 1)) + 30
+    const numChunks = Math.floor(Math.random() * (10 - 30 + 1)) + 30
     let chunkCount = 0
+
+    responseTokensCost = numChunks - 2 //starting and closing chunks must be removed from the counter
+    // totalTokensCost = payloadTokensCost + responseTokensCost
+    // const totalTokenCurrencyCost = totalTokensCost * (modelPricing.value / 1000)
+    // console.log('totalTokensCost: ', totalTokensCost)
+    // console.log('totalTokenCurrencyCost: ', totalTokenCurrencyCost)
+
+    // UserOperation.createOperationSpending(
+    //   user,
+    //   totalTokenCurrencyCost,
+    //   modelPricing.id,
+    //   'fake_stream',
+    //   0
+    // )
 
     const sendChunks = () => {
       const chunk = generateRandomChunk()

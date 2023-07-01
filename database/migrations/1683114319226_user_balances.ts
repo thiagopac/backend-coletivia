@@ -1,11 +1,11 @@
 import BaseSchema from '@ioc:Adonis/Lucid/Schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'user_quotas'
+  protected tableName = 'user_balances'
 
   public async up() {
     this.schema.createTable(this.tableName, (table) => {
-      table.increments('id')
+      table.increments('id').primary()
       table.uuid('uuid').notNullable().unique()
       table
         .integer('user_id')
@@ -14,8 +14,7 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('users')
         .onDelete('CASCADE')
-      table.integer('open_ai_text').defaultTo(0)
-      table.integer('open_ai_image').defaultTo(0)
+      table.decimal('current_balance', 12, 7).notNullable().defaultTo(0)
       table.timestamps()
     })
   }
