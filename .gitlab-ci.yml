@@ -1,0 +1,75 @@
+image: docker:git
+stages:
+  - build
+  - deploy
+
+variables:
+    IMAGE_NAME: "registry.gitlab.com/thiagopac/backend-coletivia"
+
+build-master:
+  stage: build
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $IMAGE_NAME .
+    - docker push $IMAGE_NAME
+  only:
+    - master
+
+# deploy-master:
+#    stage: deploy
+#    image: alpine:latest
+#    before_script:
+#      - apk update && apk add openssh-client
+#      - eval $(ssh-agent -s)
+#      - echo "$SSH_PRIVATE_KEY_PROD" | tr -d '\r' | ssh-add -
+#      - mkdir -p ~/.ssh
+#      - chmod 700 ~/.ssh
+#      - ssh-keyscan $SERVER_PROD >> ~/.ssh/known_hosts
+#      - chmod 644 ~/.ssh/known_hosts
+#    script:
+#      -  ssh -t ubuntu@$SERVER_PROD   "docker pull $IMAGE_NAME && docker stack deploy --prune --with-registry-auth --resolve-image always -c /home/ubuntu/manifests/docker-compose.yml smk"
+#    only:
+#      - master
+
+build-stage:
+  stage: build
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $IMAGE_NAME/homologacao .
+    - docker push $IMAGE_NAME/homologacao
+  only:
+    - staging
+
+# deploy-stage:
+#    stage: deploy
+#    image: alpine:latest
+#    before_script:
+#      - apk update && apk add openssh-client
+#      - eval $(ssh-agent -s)
+#      - echo "$SSH_PRIVATE_KEY_HML" | tr -d '\r' | ssh-add -
+#      - mkdir -p ~/.ssh
+#      - chmod 700 ~/.ssh
+#      - ssh-keyscan $SERVER_HOMOLOG >> ~/.ssh/known_hosts
+#      - chmod 644 ~/.ssh/known_hosts
+#    script:
+#      -  ssh -t ubuntu@$SERVER_HOMOLOG   "docker pull $IMAGE_NAME/homologacao && docker stack deploy --prune --with-registry-auth --resolve-image always -c /home/ubuntu/manifests/docker-compose.yml smk "
+#      -  ssh -t ubuntu@$SERVER_HOMOLOG   "docker system prune -af "
+      
+#    only:
+#      - staging
+
+build-development:
+  stage: build
+  services:
+    - docker:dind
+  script:
+    - docker build -t $IMAGE_NAME/development .
+  only:
+    - development
+
