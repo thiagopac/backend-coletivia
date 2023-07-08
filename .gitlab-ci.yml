@@ -46,24 +46,22 @@ build-stage:
   only:
     - staging
 
-# deploy-stage:
-#    stage: deploy
-#    image: alpine:latest
-#    before_script:
-#      - apk update && apk add openssh-client
-#      - eval $(ssh-agent -s)
-#      - echo "$SSH_PRIVATE_KEY_HML" | tr -d '\r' | ssh-add -
-#      - mkdir -p ~/.ssh
-#      - chmod 700 ~/.ssh
-#      - ssh-keyscan $SERVER_HOMOLOG >> ~/.ssh/known_hosts
-#      - chmod 644 ~/.ssh/known_hosts
-#    script:
-#      -  ssh -t ubuntu@$SERVER_HOMOLOG   "docker pull $IMAGE_NAME/homologacao && docker stack deploy --prune --with-registry-auth --resolve-image always -c /home/ubuntu/manifests/docker-compose.yml smk "
-#      -  ssh -t ubuntu@$SERVER_HOMOLOG   "docker system prune -af "
-      
-#    only:
-#      - staging
-
+deploy:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+     - apk update && apk add openssh-client 
+     - eval $(ssh-agent -s)
+     - echo "$SSH_PRIVATE_KEY_HML" | tr -d '\r' | ssh-add -
+     - mkdir -p ~/.ssh
+     - chmod 700 ~/.ssh
+     - ssh-keyscan $SERVER_HOMOLOG >> ~/.ssh/known_hosts
+     - chmod 644 ~/.ssh/known_hosts
+  script:
+     -  ssh -t ubuntu@$SERVER_HOMOLOG  "docker pull $IMAGE_NAME/homologacao && docker compose -f /home/ubuntu/manifests/coletivia.docker-compose.yml up -d && docker system prune -af"
+  only: 
+     - staging
+     
 build-development:
   stage: build
   services:
