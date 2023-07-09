@@ -22,7 +22,14 @@ export default class UsersController {
   public async updateInfo({ auth, request, response }: HttpContextContract) {
     try {
       const info = await UserInfo.findBy('user_id', auth.use('user').user?.id)
-      const allowedFields = ['first_name', 'last_name', 'phone', 'city_id']
+      const allowedFields = [
+        'first_name',
+        'last_name',
+        'phone',
+        'city_id',
+        'cpf_cnpj',
+        'registration_type',
+      ]
 
       const data = request.only(allowedFields) as Partial<UserInfo>
 

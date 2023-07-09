@@ -87,7 +87,7 @@ export default class UserOperation extends BaseModel {
     user: User,
     value: number,
     payload: string,
-    rechargeTypeId: number
+    rechargeId: number
   ): Promise<UserOperation> {
     try {
       await user?.load('balance')
@@ -97,8 +97,8 @@ export default class UserOperation extends BaseModel {
       operation.type = 'recharge'
       operation.value = value
       operation.currentBalance = Number(user!.balance.currentBalance) + Number(value)
-      operation.subjectType = 'recharge_types'
-      operation.subjectId = rechargeTypeId
+      operation.subjectType = 'recharges'
+      operation.subjectId = rechargeId
       operation.additionalData = JSON.parse(payload)
 
       //atualizar o balanço com o valor final

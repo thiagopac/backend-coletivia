@@ -17,6 +17,8 @@ export default class extends BaseSchema {
       table.string('first_name', 255)
       table.string('last_name', 255)
       table.string('phone').nullable()
+      table.enum('registration_type', ['PF', 'PJ']).notNullable()
+      table.string('cpf_cnpj').notNullable()
       table.integer('city_id').nullable().unsigned().references('id').inTable('cities')
       table.timestamps()
     })
