@@ -42,8 +42,10 @@ export default class AuthController {
         first_name: request.input('first_name'),
         last_name: request.input('last_name'),
         user_id: user.id,
-        phone: undefined,
-        city_id: 1991, //forçando cidade ao cadastrar ser Belo Horizonte - MG
+        phone: request.input('phone'),
+        registration_type: request.input('registration_type'),
+        cpf_cnpj: request.input('cpf_cnpj'),
+        city_id: 1991, //forçando cidade ao cadastrar ser Belo Horizonte - MG request.input('city_id')
       }
 
       const info = await UserInfo.create(createInfo)

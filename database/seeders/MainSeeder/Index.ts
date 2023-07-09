@@ -26,14 +26,18 @@ export default class extends BaseSeeder {
     await this.runSeeder(await import('../UserInfo'))
     await this.runSeeder(await import('../Admin'))
     await this.runSeeder(await import('../AdminInfo'))
-    await this.runSeeder(await import('../OpenAiModel'))
+    await this.runSeeder(await import('../AiModel'))
+    await this.runSeeder(await import('../Feature'))
     await this.runSeeder(await import('../OpenAiChat'))
+    await this.runSeeder(await import('../AiDocument'))
+    await this.runSeeder(await import('../DocumentAnalysis'))
     await this.runSeeder(await import('../UserBalance'))
     await this.runSeeder(await import('../UserOperation'))
     await this.runSeeder(await import('../Pricing'))
     await this.runSeeder(await import('../UserApiToken')) //para manter token de acesso fixo durante desenvolvimento
     await this.runSeeder(await import('../AdminApiToken')) //para manter token de acesso fixo durante desenvolvimento
     await this.runSeeder(await import('../CurrencyRate'))
-    await this.runSeeder(await import('../RechargeType'))
+    await this.runSeeder(await import('../MidjourneyImageGeneration'))
+    await this.runSeeder(await import('../RechargeOption'))
   }
 }

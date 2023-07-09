@@ -1,7 +1,7 @@
 import BaseSchema from '@ioc:Adonis/Lucid/Schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'user_infos'
+  protected tableName = 'ai_documents'
 
   public async up() {
     this.schema.createTable(this.tableName, (table) => {
@@ -14,13 +14,11 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('users')
         .onDelete('CASCADE')
-      table.string('first_name', 255)
-      table.string('last_name', 255)
-      table.string('phone').nullable()
-      table.enum('registration_type', ['PF', 'PJ']).notNullable()
-      table.string('cpf_cnpj').notNullable()
-      table.integer('city_id').nullable().unsigned().references('id').inTable('cities')
+      table.string('extension').notNullable()
+      table.string('title').notNullable()
+      table.json('content').notNullable()
       table.timestamps()
+      table.timestamp('deleted_at', { useTz: true }).nullable()
     })
   }
 

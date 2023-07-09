@@ -1,7 +1,7 @@
 import BaseSchema from '@ioc:Adonis/Lucid/Schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'user_infos'
+  protected tableName = 'instagram_posts'
 
   public async up() {
     this.schema.createTable(this.tableName, (table) => {
@@ -14,13 +14,15 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('users')
         .onDelete('CASCADE')
-      table.string('first_name', 255)
-      table.string('last_name', 255)
-      table.string('phone').nullable()
-      table.enum('registration_type', ['PF', 'PJ']).notNullable()
-      table.string('cpf_cnpj').notNullable()
-      table.integer('city_id').nullable().unsigned().references('id').inTable('cities')
+      table.integer('ai_writing_id').nullable().unsigned().references('id').inTable('ai_writings')
+      table
+        .integer('midjourney_image_generation_id')
+        .nullable()
+        .unsigned()
+        .references('id')
+        .inTable('midjourney_image_generations')
       table.timestamps()
+      table.timestamp('deleted_at', { useTz: true }).nullable()
     })
   }
 

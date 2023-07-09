@@ -1,41 +1,20 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import OpenAiChat from 'App/Models/OpenAiChat'
-import OpenAiModel from 'App/Models/OpenAiModel'
 import Pricing from 'App/Models/Pricing'
 import axios from 'axios'
 import Env from '@ioc:Adonis/Core/Env'
 import UserOperation from 'App/Models/UserOperation'
-import OpenAiImageGeneration from 'App/Models/OpenAiImageGeneration'
+import DalleAiImageGeneration from 'App/Models/DalleAiImageGeneration'
 import { GoogleTranslator } from '@translate-tools/core/translators/GoogleTranslator'
+import Feature from 'App/Models/Feature'
 
 const OPENAI_API_KEY = Env.get('OPENAI_API_KEY')
 const OPENAI_API_IMAGE_GENERATIONS_URL = `${Env.get('OPENAI_API_IMAGE_GENERATIONS_URL')}`
 
-export default class ImageController {
-  public async createImageGenerationFree({ auth, request, response }: HttpContextContract) {
-    try {
-      const user = auth.use('user').user!
-      const { model, size } = request.body()
-
-      const behavior: any = {}
-
-      const imageGeneration = await OpenAiImageGeneration.createImageGeneration(
-        user,
-        model,
-        behavior,
-        'free-image-generation',
-        size
-      )
-      return imageGeneration
-    } catch (error) {
-      return response.notFound(error.message)
-    }
-  }
-
+export default class DalleImageController {
   public async list({ auth, response }: HttpContextContract) {
     try {
       const user = auth.use('user').user
-      const imageGenerations = await OpenAiImageGeneration.query()
+      const imageGenerations = await DalleAiImageGeneration.query()
         .select(['uuid', 'size', 'images', 'created_at', 'updated_at'])
         .where('user_id', user!.id)
         .orderBy('id', 'desc')
@@ -60,25 +39,13 @@ export default class ImageController {
         text = await translator.translate(prompt, 'pt-br', 'en-us').then((translate) => translate)
       }
 
-      // //enquanto só há o DALL·E, selecionar direto do banco de dados, depois deixar usuário escolher entre opções de models de imagem
-      const openAiModel = await OpenAiModel.query()
-        .where('type', 'image')
-        .orderBy('id', 'desc')
-        .firstOrFail()
-
-      const behavior: any = {}
-
-      const imageGeneration = await OpenAiImageGeneration.createImageGeneration(
+      const feature = await Feature.getFeatureWith('name', 'dalle-free-image-generation')
+      const imageGeneration = await DalleAiImageGeneration.createImageGeneration(
         user,
-        openAiModel.uuid,
-        behavior,
-        'free-image-generation',
-        size
+        feature,
+        size,
+        prompt
       )
-
-      const modelPricing = await Pricing.query()
-        .where('open_ai_model_id', openAiModel.id)
-        .firstOrFail()
 
       const data = {
         prompt: text,
@@ -107,9 +74,9 @@ export default class ImageController {
 
       UserOperation.createOperationSpending(
         user,
-        modelPricingVariation.value * variations,
-        modelPricing.id,
-        'open_ai_image_generations',
+        modelPricingVariation.outputValue * variations,
+        modelPricingVariation.id,
+        'dalle_ai_image_generations',
         imageGeneration.id
       )
 
@@ -140,18 +107,6 @@ export default class ImageController {
       return fakeImageGeneration
     } catch (error) {
       response.status(500).json({ error })
-    }
-  }
-
-  public async messages({ auth, params, response }: HttpContextContract) {
-    try {
-      const chat = await OpenAiChat.query().preload('model').where('uuid', params.uuid).first()
-
-      if (!chat) throw new Error('Conversa não encontrada')
-
-      return chat
-    } catch (error) {
-      return response.notFound(error.message)
     }
   }
 }

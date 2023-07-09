@@ -1,20 +1,11 @@
 import { DateTime } from 'luxon'
-import {
-  BaseModel,
-  column,
-  BelongsTo,
-  belongsTo,
-  beforeCreate,
-  afterCreate,
-} from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, column, BelongsTo, belongsTo, beforeCreate } from '@ioc:Adonis/Lucid/Orm'
 import User from 'App/Models/User'
 import { v4 as uuidv4 } from 'uuid'
 import { SoftDeletes } from '@ioc:Adonis/Addons/LucidSoftDeletes'
 import { compose } from '@ioc:Adonis/Core/Helpers'
-import Feature from 'App/Models/Feature'
-import Pricing from 'App/Models/Pricing'
 
-export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
+export default class AiDocument extends compose(BaseModel, SoftDeletes) {
   /*
   |--------------------------------------------------------------------------
   | Columns
@@ -28,19 +19,16 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   public uuid: string
 
   @column({ serializeAs: null })
-  public featureId: number
-
-  @column({ serializeAs: null })
   public userId: number
+
+  @column()
+  public extension: string
 
   @column()
   public title: string
 
-  @column({ serializeAs: null })
-  public behavior: JSON
-
   @column()
-  public messages: JSON
+  public content: JSON
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
@@ -62,9 +50,6 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   @belongsTo(() => User, { foreignKey: 'userId' })
   public user: BelongsTo<typeof User>
 
-  @belongsTo(() => Feature, { foreignKey: 'featureId' })
-  public feature: BelongsTo<typeof Feature>
-
   /*
   |--------------------------------------------------------------------------
   | Hooks
@@ -72,13 +57,8 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   */
 
   @beforeCreate()
-  public static generateUUID(chat: OpenAiChat) {
-    chat.uuid = uuidv4()
-  }
-
-  @afterCreate()
-  public static changeMessagesDefault(chat: OpenAiChat) {
-    chat.messages = { messages: [] } as any
+  public static generateUUID(document: AiDocument) {
+    document.uuid = uuidv4()
   }
 
   /*
@@ -87,39 +67,30 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   |--------------------------------------------------------------------------
   */
 
-  public static async createChat(user: User, feature: Feature) {
+  public static async createDocument(user: User, extension: string) {
     try {
-      const chat = await OpenAiChat.create({
+      const document = await AiDocument.create({
         userId: user.id,
-        featureId: feature.id,
-        title: 'Sem título',
-        behavior: feature.behavior,
-        messages: { messages: [] } as any,
+        extension: extension,
+        title: 'Novo documento',
+        content: { content: [] } as any,
       })
 
-      if (!chat) throw new Error('Erro ao criar conversa')
+      if (!document) throw new Error('Erro ao criar documento')
 
-      return chat
+      return document
     } catch (error) {
       return error.message
     }
   }
 
-  public static async getOpenAiChatWithUuid(uuid: string): Promise<OpenAiChat> {
+  public static async getAiDocumentWith(field: string, value: any): Promise<AiDocument> {
     try {
-      const chat = await OpenAiChat.query()
-        .preload('feature', (query) => query.preload('model'))
-        .where('uuid', uuid)
-        .firstOrFail()
+      const document = await AiDocument.query().where(field, value).firstOrFail()
 
-      if (!chat) throw new Error('Chat não encontrado ou não disponível')
+      if (!document) throw new Error('Documento não encontrado ou não disponível')
 
-      const pricing = await Pricing.latestPriceForModelUuid(chat.feature.model.uuid)
-      if (!pricing) throw new Error('Precificação para modelo não encontrado')
-
-      chat.feature.model.pricing = pricing
-
-      return chat
+      return document
     } catch (error) {
       throw new Error(error)
     }
