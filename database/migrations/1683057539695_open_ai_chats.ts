@@ -27,3 +27,4 @@ export default class extends BaseSchema {
     this.schema.dropTable(this.tableName)
   }
 }
+// manter tipos de chat em string até que seja possível criar um enum

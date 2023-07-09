@@ -12,6 +12,7 @@ export default class UserInfoSeeder extends BaseSeeder {
         id: 1,
         featureId: 1,
         userId: 1,
+        type: 'free-chat',
         title: 'Idade do universo',
         behavior: JSON.parse(
           '{"messages":[{"role":"system","content":"Você é um assistente solícito e gentil"}],"stream":true,"temperature":1,"presence_penalty":0,"frequency_penalty":0,"logit_bias":{}}'
@@ -24,6 +25,7 @@ export default class UserInfoSeeder extends BaseSeeder {
         id: 2,
         featureId: 1,
         userId: 1,
+        type: 'free-chat',
         title: 'Fundamentos da programação',
         behavior: JSON.parse(
           '{"messages":[{"role":"system","content":"Você é um assistente solícito e gentil"}],"stream":true,"temperature":1,"presence_penalty":0,"frequency_penalty":0,"logit_bias":{}}'
@@ -36,6 +38,7 @@ export default class UserInfoSeeder extends BaseSeeder {
         id: 3,
         featureId: 1,
         userId: 1,
+        type: 'free-chat',
         title: 'Receita de bolo',
         behavior: JSON.parse(
           '{"messages":[{"role":"system","content":"Você é um assistente solícito e gentil"}],"stream":true,"temperature":1,"presence_penalty":0,"frequency_penalty":0,"logit_bias":{}}'

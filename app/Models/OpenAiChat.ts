@@ -34,6 +34,9 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   public userId: number
 
   @column()
+  public type: string
+
+  @column()
   public title: string
 
   @column({ serializeAs: null })
