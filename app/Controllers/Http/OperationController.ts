@@ -1,28 +1,32 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import RechargeType from 'App/Models/RechargeType'
+import Recharge from 'App/Models/Recharge'
 import UserOperation from 'App/Models/UserOperation'
 
 export default class OperationController {
-  public async list({ auth, response }: HttpContextContract) {
+  public async list({ auth, request, response }: HttpContextContract) {
     try {
       const user = auth.use('user').user
-      await user?.load('operations')
-      return user?.operations
+      const { page, perPage } = request.qs()
+
+      const query = UserOperation.query().where('user_id', user!.id).orderBy('id', 'desc')
+      const operations = await query.paginate(page, perPage)
+
+      return operations
     } catch (error) {
       return response.notFound(error.message)
     }
   }
 
-  public async rechargePix({ auth, request, response }: HttpContextContract) {
+  public async createRechargeOperation({ auth, request, response }: HttpContextContract) {
     try {
       const user = auth.use('user').user
       const value = request.input('value')
-      const rechargeType = await RechargeType.query().where('name', 'PIX').firstOrFail()
+      const recharge = await Recharge.getRechargeWith('uuid', request.input('uuid'))
       const operation = UserOperation.createOperationRecharge(
         user!,
         value,
         request.raw()!,
-        rechargeType.id
+        recharge.id
       )
 
       if (!operation) {

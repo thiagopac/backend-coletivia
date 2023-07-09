@@ -7,13 +7,7 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id').primary()
       table.uuid('uuid').unique()
-      table
-        .integer('user_id')
-        .notNullable()
-        .unsigned()
-        .references('id')
-        .inTable('users')
-        .onDelete('CASCADE')
+      table.integer('user_id').notNullable().unsigned().references('id').inTable('users')
       table.integer('pricing_id').nullable().unsigned().references('id').inTable('pricings')
       table.enum('type', ['recharge', 'spending']).notNullable()
       table.decimal('value', 12, 7).notNullable().defaultTo(0)
@@ -21,7 +15,6 @@ export default class extends BaseSchema {
       table.decimal('current_balance', 12, 7).notNullable().defaultTo(0)
       table.string('subject_type').nullable()
       table.integer('subject_id').nullable()
-      table.json('additional_data').nullable()
       table.timestamps()
     })
   }

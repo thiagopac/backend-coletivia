@@ -9,9 +9,10 @@ import {
 } from '@ioc:Adonis/Lucid/Orm'
 import User from 'App/Models/User'
 import { v4 as uuidv4 } from 'uuid'
-import OpenAiModel from 'App/Models/OpenAiModel'
 import { SoftDeletes } from '@ioc:Adonis/Addons/LucidSoftDeletes'
 import { compose } from '@ioc:Adonis/Core/Helpers'
+import Feature from 'App/Models/Feature'
+import Pricing from 'App/Models/Pricing'
 
 export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   /*
@@ -27,7 +28,7 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   public uuid: string
 
   @column({ serializeAs: null })
-  public openAiModelId: number
+  public featureId: number
 
   @column({ serializeAs: null })
   public userId: number
@@ -64,8 +65,8 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   @belongsTo(() => User, { foreignKey: 'userId' })
   public user: BelongsTo<typeof User>
 
-  @belongsTo(() => OpenAiModel, { foreignKey: 'openAiModelId' })
-  public model: BelongsTo<typeof OpenAiModel>
+  @belongsTo(() => Feature, { foreignKey: 'featureId' })
+  public feature: BelongsTo<typeof Feature>
 
   /*
   |--------------------------------------------------------------------------
@@ -89,21 +90,13 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   |--------------------------------------------------------------------------
   */
 
-  public static async createChat(user: User, model: string, behavior: any, type: string) {
+  public static async createChat(user: User, feature: Feature) {
     try {
-      const openAiModel = await OpenAiModel.query()
-        .where('uuid', model)
-        .andWhere('is_available', true)
-        .first()
-
-      if (!openAiModel) throw new Error('Modelo não encontrado ou não disponível')
-
       const chat = await OpenAiChat.create({
         userId: user.id,
-        openAiModelId: openAiModel.id,
-        type: type,
-        title: 'Nova conversa',
-        behavior: behavior,
+        featureId: feature.id,
+        title: 'Sem título',
+        behavior: feature.behavior,
         messages: { messages: [] } as any,
       })
 
@@ -112,6 +105,26 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
       return chat
     } catch (error) {
       return error.message
+    }
+  }
+
+  public static async getOpenAiChatWithUuid(uuid: string): Promise<OpenAiChat> {
+    try {
+      const chat = await OpenAiChat.query()
+        .preload('feature', (query) => query.preload('model'))
+        .where('uuid', uuid)
+        .firstOrFail()
+
+      if (!chat) throw new Error('Chat não encontrado ou não disponível')
+
+      const pricing = await Pricing.latestPriceForModelUuid(chat.feature.model.uuid)
+      if (!pricing) throw new Error('Precificação para modelo não encontrado')
+
+      chat.feature.model.pricing = pricing
+
+      return chat
+    } catch (error) {
+      throw new Error(error)
     }
   }
 }
