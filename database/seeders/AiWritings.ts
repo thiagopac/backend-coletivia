@@ -1,5 +1,5 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder'
-import OpenAiImageGeneration from 'App/Models/OpenAiImageGeneration'
+import AiWriting from 'App/Models/AiWriting'
 
 export default class UserInfoSeeder extends BaseSeeder {
   public static environment = ['development', 'testing']
@@ -7,6 +7,6 @@ export default class UserInfoSeeder extends BaseSeeder {
   public async run() {
     const uniqueKey = 'id'
 
-    await OpenAiImageGeneration.updateOrCreateMany(uniqueKey, [])
+    await AiWriting.updateOrCreateMany(uniqueKey, [])
   }
 }

@@ -1,6 +1,5 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import OpenAiChat from 'App/Models/OpenAiChat'
-import OpenAiModel from 'App/Models/OpenAiModel'
 import Pricing from 'App/Models/Pricing'
 import OpenAiUtils from '../../../Utils/OpenAiUtils'
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios'
@@ -8,6 +7,7 @@ import Env from '@ioc:Adonis/Core/Env'
 import { Stream } from 'stream'
 import UserOperation from 'App/Models/UserOperation'
 import User from 'App/Models/User'
+import Feature from 'App/Models/Feature'
 
 const OPENAI_API_KEY = Env.get('OPENAI_API_KEY')
 const OPENAI_API_CHAT_COMPLETIONS_URL = `${Env.get('OPENAI_API_CHAT_COMPLETIONS_URL')}`
@@ -20,96 +20,42 @@ const headers = {
 }
 
 export default class ChatController {
-  public async testBuffer({ response }: HttpContextContract) {
-    let chunk = `data: {"id":"chatcmpl-7Cv0lCDG1zc7Ir6RT1pJzi0pN1uNd","object":"chat.completion.chunk","created":1683313443,"model":"gpt-3.5-turbo-0301","choices":[{"delta":{"role":"assistant"},"index":0,"finish_reason":null}]}
-    data: {"id":"chatcmpl-7Cv0lCDG1zc7Ir6RT1pJzi0pN1uNd","object":"chat.completion.chunk","created":1683313443,"model":"gpt-3.5-turbo-0301","choices":[{"delta":{"content":" ele"},"index":0,"finish_reason":null}]}
-    data: {"id":"chatcmpl-7Cv0lCDG1zc7Ir6RT1pJzi0pN1uNd","object":"chat.completion.chunk","created":1683313443,"model":"gpt-3.5-turbo-0301","choices":[{"delta":{"content":"f"},"index":0,"finish_reason":null}]}
-    data: {"id":"chatcmpl-7Cv0lCDG1zc7Ir6RT1pJzi0pN1uNd","object":"chat.completion.chunk","created":1683313443,"model":"gpt-3.5-turbo-0301","choices":[{"delta":{"content":"ante"},"index":0,"finish_reason":null}]}
-    data: [DONE]`
-    const content = OpenAiUtils.extractContentFromBufferChunk(chunk)
-    return response.send(content)
-  }
-
-  public async createChatFree({ auth, request, response }: HttpContextContract) {
+  public async createChatFree({ auth, response }: HttpContextContract) {
     try {
       const user = auth.use('user').user!
-      const { model } = request.body()
 
-      const behavior: any = {
-        messages: [
-          {
-            role: 'system',
-            content: 'Você é um assistente gentil e solícito',
-          },
-        ],
-        stream: true,
-        temperature: 1,
-        presence_penalty: 0,
-        frequency_penalty: 0,
-        logit_bias: {},
-        prompt_context: '',
-        prompt_recent_memories: -1,
-      }
+      const feature = await Feature.getFeatureWith('name', 'free-chat')
+      if (!feature) throw new Error('Funcionalidade não encontrada')
 
-      const chat = await OpenAiChat.createChat(user, model, behavior, 'free-chat')
+      const chat = await OpenAiChat.createChat(user, feature)
       return chat
     } catch (error) {
       return response.notFound(error.message)
     }
   }
 
-  public async createChatLegalToInformal({ auth, request, response }: HttpContextContract) {
+  public async createChatLegalToInformal({ auth, response }: HttpContextContract) {
     try {
       const user = auth.use('user').user!
-      const { model } = request.body()
 
-      const behavior: any = {
-        messages: [
-          {
-            role: 'system',
-            content: 'Você é um advogado que traduz a linguagem jurídica para o cliente',
-          },
-        ],
-        stream: false,
-        temperature: 0.3,
-        presence_penalty: 0,
-        frequency_penalty: 0,
-        logit_bias: {},
-        prompt_context:
-          "Reescreva o texto entre 'aspas simples' que tem termos complexos do Direito para linguagem simples e acessível",
-        prompt_recent_memories: 0,
-      }
+      const feature = await Feature.getFeatureWith('name', 'legal-to-informal')
+      if (!feature) throw new Error('Funcionalidade não encontrada')
 
-      const chat = await OpenAiChat.createChat(user, model, behavior, 'legal-to-informal')
+      const chat = await OpenAiChat.createChat(user, feature)
       return chat
     } catch (error) {
       return response.notFound(error.message)
     }
   }
 
-  public async createChatInformalToFormal({ auth, request, response }: HttpContextContract) {
+  public async createChatInformalToFormal({ auth, response }: HttpContextContract) {
     try {
       const user = auth.use('user').user!
-      const { model } = request.body()
 
-      const behavior: any = {
-        messages: [
-          {
-            role: 'system',
-            content:
-              'Você é um linguista que reescreve textos de caráter informal para contexto formal',
-          },
-        ],
-        stream: false,
-        temperature: 0.8,
-        presence_penalty: 0,
-        frequency_penalty: 0,
-        logit_bias: {},
-        prompt_context: "Reescreva o texto informal entre 'aspas simples' para contexto formal",
-        prompt_recent_memories: 2,
-      }
+      const feature = await Feature.getFeatureWith('name', 'informal-to-formal')
+      if (!feature) throw new Error('Funcionalidade não encontrada')
 
-      const chat = await OpenAiChat.createChat(user, model, behavior, 'informal-to-formal')
+      const chat = await OpenAiChat.createChat(user, feature)
       return chat
     } catch (error) {
       return response.notFound(error.message)
@@ -120,12 +66,13 @@ export default class ChatController {
     try {
       const user = auth.use('user').user
       const chats = await OpenAiChat.query()
-        .select(['uuid', 'title', 'created_at', 'updated_at'])
+        .select(['uuid', 'feature_id', 'title', 'created_at', 'updated_at'])
         .where('user_id', user!.id)
-        .andWhere('type', '=', params.type)
+        .whereHas('feature', (query) => {
+          query.where('name', params.type)
+        })
         .orderBy('id', 'desc')
-
-      if (!chats) throw new Error('Nenhuma conversa encontrada')
+        .preload('feature')
 
       return chats
     } catch (error) {
@@ -133,17 +80,13 @@ export default class ChatController {
     }
   }
 
-  /**
-   * @description Cria uma nova mensagem em uma conversa existente, recebendo através de single response (ignora o stream do behavior)
-   */
   public async createMessageSingle({ auth, request, response }: HttpContextContract) {
     try {
       const user = auth.use('user').user!
       const { chat, prompt } = request.body()
-      let totalTokensCost: number = 0
       let messages: any[] = []
 
-      const openAiChat = await OpenAiChat.findByOrFail('uuid', chat)
+      const openAiChat = await OpenAiChat.getOpenAiChatWithUuid(chat)
       const behavior: any = openAiChat.behavior
 
       /**
@@ -167,22 +110,13 @@ export default class ChatController {
         messages.push({ role: 'user', content: promptFinal })
       }
 
-      const openAiModel = await OpenAiModel.query()
-        .where('id', openAiChat.openAiModelId)
-        .andWhere('is_available', true)
-        .firstOrFail()
-
-      const modelPricing = await Pricing.query()
-        .where('open_ai_model_id', openAiModel.id)
-        .firstOrFail()
-
       const data = {
         messages:
           messages.length === 1 && behavior['messages'].length > 0
             ? [...behavior['messages'], ...messages]
             : messages,
         stream: false, //ignora o valor stream do behavior
-        model: openAiModel.release,
+        model: openAiChat.feature.model.release,
         temperature: behavior.temperature,
         presence_penalty: behavior.presence_penalty,
         frequency_penalty: behavior.frequency_penalty,
@@ -207,9 +141,13 @@ export default class ChatController {
 
       // console.log('openaiResponse?.data: ', openaiResponse?.data)
 
-      totalTokensCost = openaiResponse?.data?.usage?.total_tokens
-      const modelPricingValuePer1k = modelPricing.value / 1000
-      const totalTokenCurrencyCost = totalTokensCost * modelPricingValuePer1k
+      const promptTokensCount = openaiResponse?.data?.usage?.prompt_tokens
+      const completionTokensCount = openaiResponse?.data?.usage?.completion_tokens
+      const modelPricingInputValuePer1k = openAiChat.feature.model.pricing.inputValue / 1000
+      const modelPricingOutputValuePer1k = openAiChat.feature.model.pricing.outputValue / 1000
+      const promptTokensCost = promptTokensCount * modelPricingInputValuePer1k
+      const completionTokenCost = completionTokensCount * modelPricingOutputValuePer1k
+      const totalTokenCurrencyCost = promptTokensCost + completionTokenCost
 
       // console.log('totalTokensCost: ', totalTokensCost)
       // console.log('modelPricingValuePer1k: ', modelPricingValuePer1k)
@@ -218,7 +156,7 @@ export default class ChatController {
       UserOperation.createOperationSpending(
         user,
         totalTokenCurrencyCost,
-        modelPricing.id,
+        openAiChat.feature.model.pricing.id,
         'open_ai_chats',
         openAiChat.id
       )
@@ -226,11 +164,17 @@ export default class ChatController {
       messages.push(openaiResponseMessage)
 
       if (messages.length === 2) {
-        this.suggestChatTitle(openAiChat.id, openAiModel?.release, messages, modelPricing, user)
+        this.suggestChatTitle(
+          openAiChat.id,
+          openAiChat.feature.model.release,
+          messages,
+          openAiChat.feature.model.pricing,
+          user
+        )
       }
 
-      console.log('completion body: ', openaiResponseMessage.content)
-      console.log('completion tokens: ', openaiResponse?.data?.usage?.completion_tokens)
+      // console.log('completion body: ', openaiResponseMessage.content)
+      // console.log('completion tokens: ', openaiResponse?.data?.usage?.completion_tokens)
 
       openAiChat.messages = JSON.stringify({ messages: messages }) as any
       openAiChat.save()
@@ -245,13 +189,9 @@ export default class ChatController {
       const user = auth.use('user').user!
       const { chat, prompt } = request.body()
       let chunkCount: number = 0
-      let responseTokensCost: number = 0
-      let totalTokensCost: number = 0
       let messages: any[] = []
 
-      // console.log('request.body: ', request.body())
-
-      const openAiChat = await OpenAiChat.findByOrFail('uuid', chat)
+      const openAiChat = await OpenAiChat.getOpenAiChatWithUuid(chat)
       const behavior: any = openAiChat.behavior
 
       /**
@@ -275,32 +215,22 @@ export default class ChatController {
           ? `${promptContext.trim()}: '${prompt}'`
           : prompt
       messages.push({ role: 'user', content: promptFinal })
-
-      console.log('messages: ', messages)
-
-      const openAiModel = await OpenAiModel.query()
-        .where('id', openAiChat.openAiModelId)
-        .andWhere('is_available', true)
-        .firstOrFail()
-
-      const modelPricing = await Pricing.query()
-        .where('open_ai_model_id', openAiModel.id)
-        .firstOrFail()
+      // console.log('messages: ', messages)
 
       const data = {
         messages: messages.length === 1 ? [...behavior['messages'], ...messages] : messages,
         stream: behavior.stream,
-        model: openAiModel.release,
+        model: openAiChat.feature.model.release,
         temperature: behavior.temperature,
         presence_penalty: behavior.presence_penalty,
         frequency_penalty: behavior.frequency_penalty,
         logit_bias: behavior.logit_bias,
       }
 
-      const payloadTokensCost = OpenAiUtils.countTokens(JSON.stringify(data.messages).trim())
+      const promptTokensCount = OpenAiUtils.countTokens(JSON.stringify(data.messages).trim())
 
-      console.log('prompt body: ', data.messages)
-      console.log('prompt tokens: ', payloadTokensCost)
+      // console.log('prompt body: ', data.messages)
+      // console.log('prompt tokens: ', payloadTokensCost)
 
       const config: AxiosRequestConfig = {
         method: 'post',
@@ -326,7 +256,7 @@ export default class ChatController {
       messages[messages.length - 1] = { role: 'user', content: prompt }
 
       openaiResponse.data.on('data', (chunk) => {
-        console.log('chunk: ', chunk.toString())
+        // console.log('chunk: ', chunk.toString())
         chunkCount++
         chunks.push(chunk)
         response.response.write(chunk.toString())
@@ -340,28 +270,36 @@ export default class ChatController {
 
         messages.push({ role: 'assistant', content: readableResponse })
 
-        responseTokensCost = chunkCount - 2 //starting and closing chunks must be removed from the counter
-        totalTokensCost = payloadTokensCost + responseTokensCost
-
-        const totalTokenCurrencyCost = totalTokensCost * (modelPricing.value / 1000)
+        const completionTokensCount = chunkCount - 2 //starting and closing chunks must be removed from the counter
+        const modelPricingInputValuePer1k = openAiChat.feature.model.pricing.inputValue / 1000
+        const modelPricingOutputValuePer1k = openAiChat.feature.model.pricing.outputValue / 1000
+        const promptTokensCost = promptTokensCount * modelPricingInputValuePer1k
+        const completionTokenCost = completionTokensCount * modelPricingOutputValuePer1k
+        const totalTokenCurrencyCost = promptTokensCost + completionTokenCost
 
         UserOperation.createOperationSpending(
           user,
           totalTokenCurrencyCost,
-          modelPricing.id,
+          openAiChat.feature.model.pricing.id,
           'open_ai_chats',
           openAiChat.id
         )
 
         if (messages.length === 2) {
-          this.suggestChatTitle(openAiChat.id, openAiModel?.release, messages, modelPricing, user)
+          this.suggestChatTitle(
+            openAiChat.id,
+            openAiChat.feature.model.release,
+            messages,
+            openAiChat.feature.model.pricing,
+            user
+          )
         }
 
         openAiChat.messages = JSON.stringify({ messages: messages }) as any
         openAiChat.save()
 
-        console.log('completion body: ', readableResponse)
-        console.log('completion tokens: ', responseTokensCost)
+        // console.log('completion body: ', readableResponse)
+        // console.log('completion tokens: ', responseTokensCost)
 
         response.response.end()
       })
@@ -370,9 +308,14 @@ export default class ChatController {
     }
   }
 
-  public async messages({ auth, params, response }: HttpContextContract) {
+  public async messages({ params, response }: HttpContextContract) {
     try {
-      const chat = await OpenAiChat.query().preload('model').where('uuid', params.uuid).first()
+      const chat = await OpenAiChat.query()
+        .preload('feature', (query) => {
+          query.preload('model')
+        })
+        .where('uuid', params.uuid)
+        .first()
 
       if (!chat) throw new Error('Conversa não encontrada')
 
@@ -403,10 +346,9 @@ export default class ChatController {
       temperature: 0.8,
     }
 
-    const payloadTokensCost = OpenAiUtils.countTokens(JSON.stringify(data.messages).trim())
-
-    console.log('TITLE :: prompt body: ', data.messages)
-    console.log('TITLE :: prompt tokens: ', payloadTokensCost)
+    // const payloadTokensCost = OpenAiUtils.countTokens(JSON.stringify(data.messages).trim())
+    // console.log('TITLE :: prompt body: ', data.messages)
+    // console.log('TITLE :: prompt tokens: ', payloadTokensCost)
 
     const config = {
       headers: {
@@ -416,9 +358,14 @@ export default class ChatController {
     }
 
     const openaiResponse = await axios.post(OPENAI_API_CHAT_COMPLETIONS_URL, data, config)
-    totalTokensCost = openaiResponse?.data?.usage?.total_tokens
-    const modelPricingValuePer1k = modelPricing.value / 1000
-    const totalTokenCurrencyCost = totalTokensCost * modelPricingValuePer1k
+    const promptTokensCount = openaiResponse?.data?.usage?.prompt_tokens
+    const completionTokensCount = openaiResponse?.data?.usage?.completion_tokens
+    const modelPricingInputValuePer1k = modelPricing.inputValue / 1000
+    const modelPricingOutputValuePer1k = modelPricing.outputValue / 1000
+    const promptTokensCost = promptTokensCount * modelPricingInputValuePer1k
+    const completionTokenCost = completionTokensCount * modelPricingOutputValuePer1k
+    const totalTokenCurrencyCost = promptTokensCost + completionTokenCost
+
     const openAiChat = await OpenAiChat.findByOrFail('id', openAiId)
     UserOperation.createOperationSpending(
       user,
@@ -428,12 +375,12 @@ export default class ChatController {
       openAiChat.id
     )
 
-    const title: string = openaiResponse?.data?.choices?.[0]?.message.content ?? 'Nova conversa'
+    const title: string = openaiResponse?.data?.choices?.[0]?.message.content ?? 'Sem título'
     openAiChat.title = title.replace(/['"]+/g, '')
     openAiChat.save()
 
-    console.log('TITLE :: completion body: ', title)
-    console.log('TITLE :: completion tokens: ', openaiResponse?.data?.usage?.completion_tokens)
+    // console.log('TITLE :: completion body: ', title)
+    // console.log('TITLE :: completion tokens: ', openaiResponse?.data?.usage?.completion_tokens)
 
     return
   }

@@ -5,16 +5,18 @@ import {
   BelongsTo,
   belongsTo,
   beforeCreate,
-  afterCreate,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm'
 import User from 'App/Models/User'
 import { v4 as uuidv4 } from 'uuid'
-import { SoftDeletes } from '@ioc:Adonis/Addons/LucidSoftDeletes'
-import { compose } from '@ioc:Adonis/Core/Helpers'
 import Feature from 'App/Models/Feature'
 import Pricing from 'App/Models/Pricing'
+import InstagramPost from 'App/Models/InstagramPost'
+import { compose } from '@ioc:Adonis/Core/Helpers'
+import { SoftDeletes } from '@ioc:Adonis/Addons/LucidSoftDeletes'
 
-export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
+export default class AiWriting extends compose(BaseModel, SoftDeletes) {
   /*
   |--------------------------------------------------------------------------
   | Columns
@@ -33,14 +35,14 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   @column({ serializeAs: null })
   public userId: number
 
-  @column()
-  public title: string
-
   @column({ serializeAs: null })
   public behavior: JSON
 
   @column()
-  public messages: JSON
+  public prompt: string
+
+  @column()
+  public text: string
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
@@ -65,6 +67,11 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   @belongsTo(() => Feature, { foreignKey: 'featureId' })
   public feature: BelongsTo<typeof Feature>
 
+  /* :::::::::::::::::::: has many :::::::::::::::::::::: */
+
+  @hasMany(() => InstagramPost, { localKey: 'id' })
+  public instagramPosts: HasMany<typeof InstagramPost>
+
   /*
   |--------------------------------------------------------------------------
   | Hooks
@@ -72,13 +79,8 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   */
 
   @beforeCreate()
-  public static generateUUID(chat: OpenAiChat) {
-    chat.uuid = uuidv4()
-  }
-
-  @afterCreate()
-  public static changeMessagesDefault(chat: OpenAiChat) {
-    chat.messages = { messages: [] } as any
+  public static generateUUID(writing: AiWriting) {
+    writing.uuid = uuidv4()
   }
 
   /*
@@ -87,39 +89,37 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   |--------------------------------------------------------------------------
   */
 
-  public static async createChat(user: User, feature: Feature) {
+  public static async createAiWriting(user: User, feature: Feature): Promise<AiWriting> {
     try {
-      const chat = await OpenAiChat.create({
+      const writing = await AiWriting.create({
         userId: user.id,
         featureId: feature.id,
-        title: 'Sem título',
         behavior: feature.behavior,
-        messages: { messages: [] } as any,
       })
 
-      if (!chat) throw new Error('Erro ao criar conversa')
+      if (!writing) throw new Error('Erro ao ao criar texto')
 
-      return chat
+      return writing
     } catch (error) {
       return error.message
     }
   }
 
-  public static async getOpenAiChatWithUuid(uuid: string): Promise<OpenAiChat> {
+  public static async getAiWritingWith(field: string, value: any): Promise<AiWriting> {
     try {
-      const chat = await OpenAiChat.query()
-        .preload('feature', (query) => query.preload('model'))
-        .where('uuid', uuid)
+      const writing = await AiWriting.query()
+        .preload('feature', (feature) => {
+          feature.preload('model')
+        })
+        .where(field, value)
         .firstOrFail()
 
-      if (!chat) throw new Error('Chat não encontrado ou não disponível')
+      if (!writing) throw new Error('Texto não encontrado')
 
-      const pricing = await Pricing.latestPriceForModelUuid(chat.feature.model.uuid)
-      if (!pricing) throw new Error('Precificação para modelo não encontrado')
-
-      chat.feature.model.pricing = pricing
-
-      return chat
+      writing.feature.model.pricing = await Pricing.latestPriceForModelUuid(
+        writing.feature.model.uuid
+      )
+      return writing
     } catch (error) {
       throw new Error(error)
     }

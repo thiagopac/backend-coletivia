@@ -1,11 +1,19 @@
 import { DateTime } from 'luxon'
-import { BaseModel, HasMany, beforeCreate, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
+import {
+  BaseModel,
+  BelongsTo,
+  HasMany,
+  beforeCreate,
+  belongsTo,
+  column,
+  hasMany,
+} from '@ioc:Adonis/Lucid/Orm'
 import OpenAiChat from 'App/Models/OpenAiChat'
 import { v4 as uuidv4 } from 'uuid'
 import Pricing from 'App/Models/Pricing'
-import OpenAiImageGeneration from 'App/Models/OpenAiImageGeneration'
+import Feature from 'App/Models/Feature'
 
-export default class OpenAiModel extends BaseModel {
+export default class AiModel extends BaseModel {
   /*
   |--------------------------------------------------------------------------
   | Columns
@@ -28,6 +36,12 @@ export default class OpenAiModel extends BaseModel {
   public type: string
 
   @column()
+  public pricing: Pricing
+
+  @column()
+  public contextLength: number
+
+  @column()
   public isAvailable: boolean
 
   @column.dateTime({ autoCreate: true })
@@ -44,11 +58,8 @@ export default class OpenAiModel extends BaseModel {
 
   /* :::::::::::::::::::: has many :::::::::::::::::::::: */
 
-  @hasMany(() => OpenAiChat, { localKey: 'id' })
-  public chats: HasMany<typeof OpenAiChat>
-
-  @hasMany(() => OpenAiImageGeneration, { localKey: 'id' })
-  public imageGenerations: HasMany<typeof OpenAiImageGeneration>
+  @hasMany(() => Feature, { localKey: 'id' })
+  public features: HasMany<typeof Feature>
 
   @hasMany(() => Pricing, { localKey: 'id' })
   public prices: HasMany<typeof Pricing>
@@ -70,17 +81,18 @@ export default class OpenAiModel extends BaseModel {
   |--------------------------------------------------------------------------
   */
 
-  public static async getModelForUuid(modelUuid: string): Promise<OpenAiModel> {
+  public static async getModelWith(field: string, value: any): Promise<AiModel> {
     try {
-      const openAiModel = await OpenAiModel.query()
-        .preload('prices')
-        .where('uuid', modelUuid)
-        .where('is_available', true)
-        .first()
+      const aiModel = await AiModel.query().where(field, value).where('is_available', true).first()
 
-      if (!openAiModel) throw new Error('Modelo não encontrado ou não disponível')
+      if (!aiModel) throw new Error('Modelo não encontrado ou não disponível')
 
-      return openAiModel
+      const pricing = await Pricing.latestPriceForModelUuid(aiModel.uuid)
+      if (!pricing) throw new Error('Precificação para modelo não encontrado')
+
+      aiModel.pricing = pricing
+
+      return aiModel
     } catch (error) {
       throw new Error(error)
     }

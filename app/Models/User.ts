@@ -15,7 +15,10 @@ import UserInfo from './UserInfo'
 import OpenAiChat from 'App/Models/OpenAiChat'
 import UserBalance from 'App/Models/UserBalance'
 import UserOperation from 'App/Models/UserOperation'
-import OpenAiImageGeneration from 'App/Models/OpenAiImageGeneration'
+import DalleAiImageGeneration from 'App/Models/DalleAiImageGeneration'
+import AiDocument from 'App/Models/AiDocument'
+import InstagramPost from 'App/Models/InstagramPost'
+import Recharge from 'App/Models/Recharge'
 
 export default class User extends BaseModel {
   /*
@@ -64,11 +67,20 @@ export default class User extends BaseModel {
   @hasMany(() => OpenAiChat, { localKey: 'id' })
   public chats: HasMany<typeof OpenAiChat>
 
-  @hasMany(() => OpenAiImageGeneration, { localKey: 'id' })
-  public imageGenerations: HasMany<typeof OpenAiImageGeneration>
+  @hasMany(() => AiDocument, { localKey: 'id' })
+  public documents: HasMany<typeof AiDocument>
+
+  @hasMany(() => DalleAiImageGeneration, { localKey: 'id' })
+  public imageGenerations: HasMany<typeof DalleAiImageGeneration>
 
   @hasMany(() => UserOperation, { localKey: 'id' })
   public operations: HasMany<typeof UserOperation>
+
+  @hasMany(() => InstagramPost, { localKey: 'id' })
+  public instagramPosts: HasMany<typeof InstagramPost>
+
+  @hasMany(() => Recharge, { localKey: 'id' })
+  public recharges: HasMany<typeof Recharge>
 
   /*
   |--------------------------------------------------------------------------

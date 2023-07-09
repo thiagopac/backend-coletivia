@@ -6,12 +6,18 @@ import {
   belongsTo,
   beforeCreate,
   afterCreate,
+  HasMany,
+  hasMany,
 } from '@ioc:Adonis/Lucid/Orm'
 import User from 'App/Models/User'
 import { v4 as uuidv4 } from 'uuid'
-import OpenAiModel from 'App/Models/OpenAiModel'
+import Feature from 'App/Models/Feature'
+import Pricing from 'App/Models/Pricing'
+import InstagramPost from 'App/Models/InstagramPost'
+import { compose } from '@ioc:Adonis/Core/Helpers'
+import { SoftDeletes } from '@ioc:Adonis/Addons/LucidSoftDeletes'
 
-export default class OpenAiImageGeneration extends BaseModel {
+export default class MidjourneyImageGeneration extends compose(BaseModel, SoftDeletes) {
   /*
   |--------------------------------------------------------------------------
   | Columns
@@ -25,16 +31,13 @@ export default class OpenAiImageGeneration extends BaseModel {
   public uuid: string
 
   @column({ serializeAs: null })
-  public openAiModelId: number
+  public featureId: number
 
   @column({ serializeAs: null })
   public userId: number
 
   @column()
-  public type: string
-
-  @column()
-  public size: string
+  public prompt: string
 
   @column({ serializeAs: null })
   public behavior: JSON
@@ -42,11 +45,20 @@ export default class OpenAiImageGeneration extends BaseModel {
   @column()
   public images: JSON
 
+  @column()
+  public variations: JSON
+
+  @column()
+  public upscales: JSON
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime
+
+  @column.dateTime({ serializeAs: null })
+  public deletedAt: DateTime | null
 
   /*
   |--------------------------------------------------------------------------
@@ -59,8 +71,13 @@ export default class OpenAiImageGeneration extends BaseModel {
   @belongsTo(() => User, { foreignKey: 'userId' })
   public user: BelongsTo<typeof User>
 
-  @belongsTo(() => OpenAiModel, { foreignKey: 'openAiModelId' })
-  public model: BelongsTo<typeof OpenAiModel>
+  @belongsTo(() => Feature, { foreignKey: 'featureId' })
+  public feature: BelongsTo<typeof Feature>
+
+  /* :::::::::::::::::::: has many :::::::::::::::::::::: */
+
+  @hasMany(() => InstagramPost, { localKey: 'id' })
+  public instagramPosts: HasMany<typeof InstagramPost>
 
   /*
   |--------------------------------------------------------------------------
@@ -69,12 +86,12 @@ export default class OpenAiImageGeneration extends BaseModel {
   */
 
   @beforeCreate()
-  public static generateUUID(imageGeneration: OpenAiImageGeneration) {
+  public static generateUUID(imageGeneration: MidjourneyImageGeneration) {
     imageGeneration.uuid = uuidv4()
   }
 
   @afterCreate()
-  public static changeImagesDefault(imageGeneration: OpenAiImageGeneration) {
+  public static changeImagesDefault(imageGeneration: MidjourneyImageGeneration) {
     imageGeneration.images = { images: [] } as any
   }
 
@@ -86,24 +103,18 @@ export default class OpenAiImageGeneration extends BaseModel {
 
   public static async createImageGeneration(
     user: User,
-    model: string,
-    behavior: any,
-    type: string,
-    size: string
-  ) {
+    feature: Feature,
+    prompt: string
+  ): Promise<MidjourneyImageGeneration> {
     try {
-      const openAiModel = await OpenAiModel.query()
-        .where('uuid', model)
-        .andWhere('is_available', true)
-        .firstOrFail()
-
-      const imageGeneration = await OpenAiImageGeneration.create({
+      const imageGeneration = await MidjourneyImageGeneration.create({
         userId: user.id,
-        openAiModelId: openAiModel.id,
-        type: type,
-        size: size,
-        behavior: behavior,
+        featureId: feature.id,
+        behavior: feature.behavior,
+        prompt: prompt,
         images: { images: [] } as any,
+        variations: { variations: [] } as any,
+        upscales: { upscales: [] } as any,
       })
 
       if (!imageGeneration) throw new Error('Erro ao geração de imagens')
@@ -111,6 +122,29 @@ export default class OpenAiImageGeneration extends BaseModel {
       return imageGeneration
     } catch (error) {
       return error.message
+    }
+  }
+
+  public static async getImageGenerationWith(
+    field: string,
+    value: any
+  ): Promise<MidjourneyImageGeneration> {
+    try {
+      const generation = await MidjourneyImageGeneration.query()
+        .preload('feature', (feature) => {
+          feature.preload('model')
+        })
+        .where(field, value)
+        .firstOrFail()
+
+      if (!generation) throw new Error('Imagem não encontrada')
+
+      generation.feature.model.pricing = await Pricing.latestPriceForModelUuid(
+        generation.feature.model.uuid
+      )
+      return generation
+    } catch (error) {
+      throw new Error(error)
     }
   }
 }

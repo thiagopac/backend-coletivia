@@ -14,7 +14,6 @@ export default class UserInfoSeeder extends BaseSeeder {
         type: 'recharge',
         value: 10.0,
         currentBalance: 10.0,
-        additionalData: JSON.parse('{"message":"Pix recebido com sucesso"}'),
       },
       {
         id: 2,
@@ -22,8 +21,8 @@ export default class UserInfoSeeder extends BaseSeeder {
         type: 'recharge',
         value: 9.0,
         currentBalance: 9.0,
-        additionalData: JSON.parse('{"message":"Pix recebido com sucesso"}'),
       },
     ])
   }
 }
+// additionalData: JSON.parse('{"message":"Pix recebido com sucesso"}'),

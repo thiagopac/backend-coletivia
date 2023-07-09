@@ -1,10 +1,10 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import OpenAiModel from 'App/Models/OpenAiModel'
+import AiModel from 'App/Models/AiModel'
 
 export default class AiModelController {
   public async list({ response }: HttpContextContract) {
     try {
-      return OpenAiModel.query().where('is_available', true)
+      return AiModel.query().where('is_available', true)
     } catch (error) {
       return response.notFound(error.message)
     }
@@ -12,7 +12,7 @@ export default class AiModelController {
 
   public async listForType({ params, response }: HttpContextContract) {
     try {
-      return OpenAiModel.query().where('is_available', true).andWhere('type', params.type)
+      return AiModel.query().where('is_available', true).andWhere('type', params.type)
     } catch (error) {
       return response.notFound(error.message)
     }

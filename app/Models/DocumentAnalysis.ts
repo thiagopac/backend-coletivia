@@ -13,8 +13,9 @@ import { SoftDeletes } from '@ioc:Adonis/Addons/LucidSoftDeletes'
 import { compose } from '@ioc:Adonis/Core/Helpers'
 import Feature from 'App/Models/Feature'
 import Pricing from 'App/Models/Pricing'
+import AiDocument from 'App/Models/AiDocument'
 
-export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
+export default class DocumentAnalysis extends compose(BaseModel, SoftDeletes) {
   /*
   |--------------------------------------------------------------------------
   | Columns
@@ -31,13 +32,19 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   public featureId: number
 
   @column({ serializeAs: null })
+  public aiDocumentId: number
+
+  @column({ serializeAs: null })
   public userId: number
 
   @column()
-  public title: string
+  public type: string
 
   @column({ serializeAs: null })
   public behavior: JSON
+
+  @column()
+  public content: JSON
 
   @column()
   public messages: JSON
@@ -65,6 +72,9 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   @belongsTo(() => Feature, { foreignKey: 'featureId' })
   public feature: BelongsTo<typeof Feature>
 
+  @belongsTo(() => AiDocument, { foreignKey: 'aiDocumentId' })
+  public document: BelongsTo<typeof AiDocument>
+
   /*
   |--------------------------------------------------------------------------
   | Hooks
@@ -72,13 +82,13 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   */
 
   @beforeCreate()
-  public static generateUUID(chat: OpenAiChat) {
-    chat.uuid = uuidv4()
+  public static generateUUID(documentAnalysis: DocumentAnalysis) {
+    documentAnalysis.uuid = uuidv4()
   }
 
   @afterCreate()
-  public static changeMessagesDefault(chat: OpenAiChat) {
-    chat.messages = { messages: [] } as any
+  public static changeMessagesDefault(documentAnalysis: DocumentAnalysis) {
+    documentAnalysis.messages = { messages: [] } as any
   }
 
   /*
@@ -87,39 +97,43 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   |--------------------------------------------------------------------------
   */
 
-  public static async createChat(user: User, feature: Feature) {
+  public static async createDocumentAnalysis(user: User, feature: Feature, document: AiDocument) {
     try {
-      const chat = await OpenAiChat.create({
+      const analysis = await DocumentAnalysis.create({
         userId: user.id,
         featureId: feature.id,
-        title: 'Sem título',
+        aiDocumentId: document.id,
         behavior: feature.behavior,
+        content: { content: [] } as any,
         messages: { messages: [] } as any,
       })
 
-      if (!chat) throw new Error('Erro ao criar conversa')
+      if (!analysis) throw new Error('Erro ao criar análise de documento')
 
-      return chat
+      return analysis
     } catch (error) {
       return error.message
     }
   }
 
-  public static async getOpenAiChatWithUuid(uuid: string): Promise<OpenAiChat> {
+  public static async getDocumentAnalysisWith(
+    field: string,
+    value: any
+  ): Promise<DocumentAnalysis> {
     try {
-      const chat = await OpenAiChat.query()
+      const analysis = await DocumentAnalysis.query()
         .preload('feature', (query) => query.preload('model'))
-        .where('uuid', uuid)
+        .where(field, value)
         .firstOrFail()
 
-      if (!chat) throw new Error('Chat não encontrado ou não disponível')
+      if (!analysis) throw new Error('Análise de documento não encontrada ou não disponível')
 
-      const pricing = await Pricing.latestPriceForModelUuid(chat.feature.model.uuid)
+      const pricing = await Pricing.latestPriceForModelUuid(analysis.feature.model.uuid)
       if (!pricing) throw new Error('Precificação para modelo não encontrado')
 
-      chat.feature.model.pricing = pricing
+      analysis.feature.model.pricing = pricing
 
-      return chat
+      return analysis
     } catch (error) {
       throw new Error(error)
     }

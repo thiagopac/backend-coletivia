@@ -1,5 +1,5 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder'
-import RechargeType from 'App/Models/RechargeType'
+import DalleAiImageGeneration from 'App/Models/DalleAiImageGeneration'
 
 export default class UserInfoSeeder extends BaseSeeder {
   public static environment = ['development', 'testing']
@@ -7,12 +7,6 @@ export default class UserInfoSeeder extends BaseSeeder {
   public async run() {
     const uniqueKey = 'id'
 
-    await RechargeType.updateOrCreateMany(uniqueKey, [
-      {
-        id: 1,
-        name: 'PIX',
-        isAvailable: true,
-      },
-    ])
+    await DalleAiImageGeneration.updateOrCreateMany(uniqueKey, [])
   }
 }
