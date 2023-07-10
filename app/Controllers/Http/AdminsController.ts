@@ -41,9 +41,8 @@ export default class AdminsController {
     }
   }
 
-  public async list({ auth, response }: HttpContextContract) {
+  public async list({ response }: HttpContextContract) {
     try {
-      const admin = auth.use('admin').user
       const admins = await Admin.query()
         .preload('info', (info) => {
           info.preload('city')

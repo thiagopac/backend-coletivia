@@ -1,7 +1,7 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder'
 import AiModel from 'App/Models/AiModel'
 
-export default class UserInfoSeeder extends BaseSeeder {
+export default class extends BaseSeeder {
   public static environment = ['development', 'testing']
 
   public async run() {

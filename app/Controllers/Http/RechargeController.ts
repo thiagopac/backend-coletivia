@@ -4,7 +4,7 @@ import Recharge from 'App/Models/Recharge'
 import User from 'App/Models/User'
 
 export default class RechargeController {
-  public async listOptions({ auth, request, response }: HttpContextContract) {
+  public async listOptions({ response }: HttpContextContract) {
     try {
       const options = RechargeOption.query().where('is_available', true)
       if (!options) {
@@ -17,7 +17,7 @@ export default class RechargeController {
     }
   }
 
-  public async retrieve({ auth, params, response }: HttpContextContract) {
+  public async retrieve({ params, response }: HttpContextContract) {
     try {
       const recharge = await Recharge.getRechargeWith('uuid', params.uuid)
       if (!recharge) {
@@ -40,7 +40,7 @@ export default class RechargeController {
     }
   }
 
-  public async createRecharge({ auth, request, response }: HttpContextContract) {
+  public async createRecharge({ auth, request }: HttpContextContract) {
     const { option } = request.body()
 
     const rechargeOption = await RechargeOption.getRechargeOptionWith('uuid', option)
@@ -91,11 +91,11 @@ export default class RechargeController {
     return payload
   }
 
-  public async updateRecharge(user: User, rechargeOption: RechargeOption): Promise<object> {
-    //TODO: implementar atualização de cobrança via webhook
+  // public async updateRecharge(user: User, rechargeOption: RechargeOption): Promise<object> {
+  //TODO: implementar atualização de cobrança via webhook
 
-    return {}
-  }
+  //   return {}
+  // }
 }
 
 /*

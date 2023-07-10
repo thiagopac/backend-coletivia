@@ -268,9 +268,8 @@ export default class UnofficialMidjourneyImageController {
     }
   }
 
-  public async fakeImageGeneration({ auth, request, response }: HttpContextContract) {
+  public async fakeImageGeneration({ response }: HttpContextContract) {
     try {
-      const user = auth.use('user').user!
       // const { size, prompt, variations } = request.body()
 
       const fakeImageGeneration = {

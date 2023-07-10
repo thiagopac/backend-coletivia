@@ -3,7 +3,7 @@ import AiDocument from 'App/Models/AiDocument'
 import Feature from 'App/Models/Feature'
 
 export default class FeatureController {
-  public async list({ auth, response }: HttpContextContract) {
+  public async list({ response }: HttpContextContract) {
     try {
       return await Feature.query().where('suitness', 'summarization')
     } catch (error) {

@@ -1,7 +1,7 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder'
 import Country from 'App/Models/Country'
 
-export default class CountrySeeder extends BaseSeeder {
+export default class extends BaseSeeder {
   public static environment = ['development', 'testing']
 
   public async run() {

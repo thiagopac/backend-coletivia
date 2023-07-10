@@ -1,13 +1,5 @@
 import { DateTime } from 'luxon'
-import {
-  BaseModel,
-  BelongsTo,
-  HasMany,
-  beforeCreate,
-  belongsTo,
-  column,
-  hasMany,
-} from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, HasMany, beforeCreate, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
 import OpenAiChat from 'App/Models/OpenAiChat'
 import { v4 as uuidv4 } from 'uuid'
 import Pricing from 'App/Models/Pricing'
