@@ -1,4 +1,4 @@
-ARG NODE_IMAGE=node:20.4.0
+ARG NODE_IMAGE=node:20.4.0-alpine3.18
 FROM $NODE_IMAGE AS base
 RUN apk --no-cache add dumb-init
 RUN mkdir -p /home/node/app && chown node:node /home/node/app
