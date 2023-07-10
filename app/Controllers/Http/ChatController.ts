@@ -332,7 +332,6 @@ export default class ChatController {
     modelPricing: Pricing,
     user: User
   ) {
-    let totalTokensCost: number = 0
     const data = {
       messages: [
         ...messages,
