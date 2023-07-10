@@ -8,7 +8,7 @@ import Feature from 'App/Models/Feature'
 import DocumentAnalysis from 'App/Models/DocumentAnalysis'
 
 const OPENAI_API_KEY = Env.get('OPENAI_API_KEY')
-const OPENAI_API_CHAT_COMPLETIONS_URL = `${Env.get('OPENAI_API_CHAT_COMPLETIONS_URL')}`
+// const OPENAI_API_CHAT_COMPLETIONS_URL = `${Env.get('OPENAI_API_CHAT_COMPLETIONS_URL')}`
 
 const TEST_MOCK_API_CHAT_COMPLETIONS_URL = `${Env.get('TEST_MOCK_API_CHAT_COMPLETIONS_URL')}`
 

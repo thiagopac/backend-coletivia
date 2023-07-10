@@ -4,7 +4,6 @@ import User from './User'
 import { v4 as uuidv4 } from 'uuid'
 import Pricing from 'App/Models/Pricing'
 import CurrencyRate from 'App/Models/CurrencyRate'
-const CC = require('currency-converter-lt')
 
 export default class UserOperation extends BaseModel {
   /*

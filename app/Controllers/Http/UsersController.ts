@@ -48,9 +48,8 @@ export default class UsersController {
     }
   }
 
-  public async list({ auth, response }: HttpContextContract) {
+  public async list({ response }: HttpContextContract) {
     try {
-      const user = auth.use('admin').user
       const users = await User.query()
         .preload('info', (info) => {
           info.preload('city')

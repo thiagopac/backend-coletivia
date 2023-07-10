@@ -52,7 +52,7 @@ export default class GenerativeAITextController {
   }
 
   public async fakeStream({ response }: HttpContextContract) {
-    let responseTokensCost = 0
+    let responseTokensCost
 
     response.response.writeHead(200, headers)
 

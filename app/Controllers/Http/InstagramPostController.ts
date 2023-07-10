@@ -14,7 +14,7 @@ import User from 'App/Models/User'
 
 const OPENAI_API_KEY = Env.get('OPENAI_API_KEY')
 const OPENAI_API_CHAT_COMPLETIONS_URL = `${Env.get('OPENAI_API_CHAT_COMPLETIONS_URL')}`
-const TEST_MOCK_API_CHAT_COMPLETIONS_URL = `${Env.get('TEST_MOCK_API_CHAT_COMPLETIONS_URL')}`
+// const TEST_MOCK_API_CHAT_COMPLETIONS_URL = `${Env.get('TEST_MOCK_API_CHAT_COMPLETIONS_URL')}`
 
 const UNOFFICIAL_MIDJOURNEY_SERVER_ID = Env.get('UNOFFICIAL_MIDJOURNEY_SERVER_ID')
 const UNOFFICIAL_MIDJOURNEY_CHANNEL_ID = `${Env.get('UNOFFICIAL_MIDJOURNEY_CHANNEL_ID')}`
@@ -274,7 +274,6 @@ export default class InstagramPostController {
   public async generateImagePost({
     auth,
     request,
-    response,
   }: HttpContextContract): Promise<InstagramPost | void> {
     const user = auth.use('user').user!
     const { post, imagine, translate, size } = request.body()
@@ -492,7 +491,7 @@ export default class InstagramPostController {
     }
   }
 
-  public async translate({ auth, request, response }: HttpContextContract): Promise<string> {
+  public async translate({ request }: HttpContextContract): Promise<string> {
     const { text } = request.body()
     const translator = new GoogleTranslator()
     const translation = await translator.translate(text, 'pt-br', 'en-us')

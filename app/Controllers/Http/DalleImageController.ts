@@ -89,11 +89,8 @@ export default class DalleImageController {
     }
   }
 
-  public async fakeImageGeneration({ auth, request, response }: HttpContextContract) {
+  public async fakeImageGeneration({ response }: HttpContextContract) {
     try {
-      const user = auth.use('user').user!
-      // const { size, prompt, variations } = request.body()
-
       const fakeImageGeneration = {
         type: 'free-image-generation',
         size: '1024x1024',
