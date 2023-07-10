@@ -51,8 +51,8 @@ export default class RechargeOption extends BaseModel {
   */
 
   @beforeCreate()
-  public static generateUUID(rechargeType: RechargeOption) {
-    rechargeType.uuid = uuidv4()
+  public static generateUUID(rechargeOption: RechargeOption) {
+    rechargeOption.uuid = uuidv4()
   }
 
   /*
