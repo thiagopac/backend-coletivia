@@ -15,7 +15,7 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('recharge_options')
       table.decimal('value', 12, 7).notNullable().defaultTo(0)
-      table.string('transaction_id').nullable()
+      table.string('transaction_code').nullable()
       table.enum('status', ['pending', 'paid', 'expired']).notNullable().defaultTo('pending')
       table.json('charge_data').nullable()
       table.json('payment_data').nullable()

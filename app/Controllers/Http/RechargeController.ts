@@ -5,6 +5,7 @@ import User from 'App/Models/User'
 import Env from '@ioc:Adonis/Core/Env'
 import axios from 'axios'
 const PIX_URL = Env.get('PIX_URL')
+// const TEST_MOCK_PIX_URL = Env.get('TEST_MOCK_PIX_URL')
 
 export default class RechargeController {
   public async listOptions({ response }: HttpContextContract) {
@@ -51,7 +52,6 @@ export default class RechargeController {
     await user?.load('info')
     const cobImediata = await this.createPixCobImediata(user!, rechargeOption)
     const recharge = await Recharge.createRecharge(user!, rechargeOption, cobImediata)
-
     return recharge
   }
 
@@ -81,22 +81,22 @@ export default class RechargeController {
         dataDeVencimento: tomorrow.toISOString(),
         expiracao: expirationMinutes * 60 * 1000,
       },
-      chave: 'b33a1e83-2703-4d45-9e14-500a2d4aabbd',
+      chave: '17751370000163',
       devedor: devedor,
       valor: {
         original: valorPix,
       },
     }
 
-    console.log(payload)
-
-    const response = await axios.post(`${PIX_URL}/pix`, payload)
-    return response
+    const cobImediata = await axios.post(`${PIX_URL}/pix`, payload)
+    // const cobImediata = await axios.post(`${TEST_MOCK_PIX_URL}/pix`, payload)
+    return cobImediata.data
   }
 
   public async updateRecharge({ request, response }: HttpContextContract) {
     try {
       const { txid } = request.body()
+      console.log('request.raw()!: ', request.raw()!)
       const recharge = await Recharge.query().where('transaction_code', txid).firstOrFail()
       recharge.status = 'paid'
       recharge.paymentData = JSON.parse(request.raw()!)
@@ -106,23 +106,3 @@ export default class RechargeController {
     }
   }
 }
-
-/*
-
-"calendario": {
-    "criacao": "string", <- é a data de criação do pagamento
-    "dataDeVencimento": "string", <- é a data de vencimento
-    "expiracao": 0 <- é o tempo em milisegundos em que o qrcode vai expirar
-  }
-
-  "chave": "string", <- é a chave pix do recebedor
-  "devedor": {
-    "cnpj": "string", <- cnpj do devedor se houver
-    "cpf": "string", <- cpf do devedor se houver
-    "nome": "string" <- nome ou razao social do devedor
-  }
-
-  "valor": {
-    "original": 0 <- valor da cobrança
-  }
- */
