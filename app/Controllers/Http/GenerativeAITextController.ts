@@ -52,8 +52,6 @@ export default class GenerativeAITextController {
   }
 
   public async fakeStream({ response }: HttpContextContract) {
-    let responseTokensCost
-
     response.response.writeHead(200, headers)
 
     const generateRandomChunk = (isLastChunk: boolean): string => {
@@ -86,8 +84,6 @@ export default class GenerativeAITextController {
 
     const numChunks = Math.floor(Math.random() * (10 - 30 + 1)) + 30
     let chunkCount = 0
-
-    responseTokensCost = numChunks - 2 //starting and closing chunks must be removed from the counter
 
     const sendChunks = () => {
       const isLastChunk = chunkCount === numChunks - 1
