@@ -33,6 +33,12 @@ Route.group(() => {
     Route.get('generative-text/stream-random-text', 'GenerativeAITextController.streamRandomText')
 
     Route.get('tests/text-to-stream', 'TestController.getTextInChunks')
+
+    Route.get('policy/:type', 'PolicyController.retrieve')
+
+    Route.group(() => {
+      Route.post('pix', 'RechargeController.updateRecharge')
+    }).prefix('/webhook')
   })
 
   //user-authenticated routes
