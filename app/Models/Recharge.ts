@@ -24,10 +24,16 @@ export default class Recharge extends BaseModel {
   public rechargeOptionId: number
 
   @column()
+  public transaction_code: string
+
+  @column()
   public status: string
 
   @column({ serializeAs: null })
-  public additionalData: JSON
+  public chargeData: JSON
+
+  @column({ serializeAs: null })
+  public paymentData: JSON
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
@@ -71,14 +77,15 @@ export default class Recharge extends BaseModel {
   public static async createRecharge(
     user: User,
     rechargeOption: RechargeOption,
-    additionalData?: any
+    chargeData?: any
   ): Promise<Recharge> {
     try {
       const recharge = await Recharge.create({
         userId: user.id,
         rechargeOptionId: rechargeOption.id,
         status: 'pending',
-        additionalData: additionalData,
+        transaction_code: chargeData?.txid,
+        chargeData: chargeData,
       })
 
       if (!recharge) throw new Error('Erro ao ao criar registro de recarga')
