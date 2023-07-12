@@ -2,6 +2,9 @@ import RechargeOption from 'App/Models/RechargeOption'
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Recharge from 'App/Models/Recharge'
 import User from 'App/Models/User'
+import Env from '@ioc:Adonis/Core/Env'
+import axios from 'axios'
+const PIX_URL = Env.get('PIX_URL')
 
 export default class RechargeController {
   public async listOptions({ response }: HttpContextContract) {
@@ -26,7 +29,7 @@ export default class RechargeController {
       const result = {
         uuid: recharge.uuid,
         status: recharge.status,
-        qr_code: (recharge.additionalData as any).pixCopiaECola,
+        qr_code: (recharge.chargeData as any).pixCopiaECola,
         label: recharge.rechargeOption.label,
         description: recharge.rechargeOption.description,
         observations: recharge.rechargeOption.observations,
@@ -46,8 +49,8 @@ export default class RechargeController {
     const rechargeOption = await RechargeOption.getRechargeOptionWith('uuid', option)
     const user = await User.find(auth.use('user').user!.id)
     await user?.load('info')
-    const payload = await this.createPixCobImediata(user!, rechargeOption)
-    const recharge = await Recharge.createRecharge(user!, rechargeOption, payload)
+    const cobImediata = await this.createPixCobImediata(user!, rechargeOption)
+    const recharge = await Recharge.createRecharge(user!, rechargeOption, cobImediata)
 
     return recharge
   }
@@ -85,17 +88,23 @@ export default class RechargeController {
       },
     }
 
-    payload.pixCopiaECola =
-      '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-426655440000 5204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
+    console.log(payload)
 
-    return payload
+    const response = await axios.post(`${PIX_URL}/pix`, payload)
+    return response
   }
 
-  // public async updateRecharge(user: User, rechargeOption: RechargeOption): Promise<object> {
-  //TODO: implementar atualização de cobrança via webhook
-
-  //   return {}
-  // }
+  public async updateRecharge({ request, response }: HttpContextContract) {
+    try {
+      const { txid } = request.body()
+      const recharge = await Recharge.query().where('transaction_code', txid).firstOrFail()
+      recharge.status = 'paid'
+      recharge.paymentData = JSON.parse(request.raw()!)
+      recharge.save()
+    } catch (error) {
+      return response.notFound(error.message)
+    }
+  }
 }
 
 /*
