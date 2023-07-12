@@ -39,5 +39,6 @@ export default class extends BaseSeeder {
     await this.runSeeder(await import('../CurrencyRate'))
     await this.runSeeder(await import('../MidjourneyImageGeneration'))
     await this.runSeeder(await import('../RechargeOption'))
+    await this.runSeeder(await import('../Policy'))
   }
 }
