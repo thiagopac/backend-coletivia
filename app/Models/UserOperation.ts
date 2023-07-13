@@ -42,9 +42,6 @@ export default class UserOperation extends BaseModel {
   @column()
   public subjectId: number
 
-  @column()
-  public additionalData: JSON
-
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
 
@@ -85,7 +82,6 @@ export default class UserOperation extends BaseModel {
   public static async createOperationRecharge(
     user: User,
     value: number,
-    payload: string,
     rechargeId: number
   ): Promise<UserOperation> {
     try {
@@ -98,7 +94,6 @@ export default class UserOperation extends BaseModel {
       operation.currentBalance = Number(user!.balance.currentBalance) + Number(value)
       operation.subjectType = 'recharges'
       operation.subjectId = rechargeId
-      operation.additionalData = JSON.parse(payload)
 
       //atualizar o balanço com o valor final
       user!.balance.currentBalance = operation.currentBalance
@@ -116,8 +111,7 @@ export default class UserOperation extends BaseModel {
     value: number,
     modelPricingId: number,
     subjectType: string,
-    subjectId: number,
-    payload?: string
+    subjectId: number
   ): Promise<UserOperation> {
     try {
       const convertedValueUsdToBrl = await CurrencyRate.convertUsdToBrl(value)
@@ -138,9 +132,6 @@ export default class UserOperation extends BaseModel {
         Number(user!.balance.currentBalance) - Number(convertedValueUsdToBrl)
       operation.subjectType = subjectType
       operation.subjectId = subjectId
-      if (payload) {
-        operation.additionalData = JSON.parse(payload)
-      }
 
       //atualizar o balanço com o valor final
       user!.balance.currentBalance = operation.currentBalance

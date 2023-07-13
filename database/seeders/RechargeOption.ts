@@ -13,7 +13,7 @@ export default class extends BaseSeeder {
         type: 'pix',
         label: 'Teste',
         debitedValue: 0.01,
-        creditedValue: 10,
+        creditedValue: 0.01,
         isAvailable: true,
       },
       {
