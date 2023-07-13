@@ -4,6 +4,7 @@ import Recharge from 'App/Models/Recharge'
 import User from 'App/Models/User'
 import Env from '@ioc:Adonis/Core/Env'
 import axios from 'axios'
+import UserOperation from 'App/Models/UserOperation'
 const PIX_URL = Env.get('PIX_URL')
 // const TEST_MOCK_PIX_URL = Env.get('TEST_MOCK_PIX_URL')
 
@@ -35,6 +36,7 @@ export default class RechargeController {
         description: recharge.rechargeOption.description,
         observations: recharge.rechargeOption.observations,
         value: recharge.rechargeOption.debitedValue,
+        paid_at: (recharge.paymentData as any)?.pix[0].horario,
         created_at: recharge.createdAt,
         updated_at: recharge.updatedAt,
       }
@@ -96,11 +98,15 @@ export default class RechargeController {
   public async updateRecharge({ request, response }: HttpContextContract) {
     try {
       const { txid } = request.body().pix[0]
-      console.log('request.raw()!: ', request.raw()!)
       const recharge = await Recharge.query().where('transaction_code', txid).firstOrFail()
+      const user = await recharge.related('user').query().firstOrFail()
+
       recharge.status = 'paid'
       recharge.paymentData = request.raw()! as any
       await recharge.save()
+
+      UserOperation.createOperationRecharge(user!, recharge.value, recharge.id)
+
       return response.ok({ message: 'Pedido de recarga atualizado' })
     } catch (error) {
       return response.notFound(error.message)
