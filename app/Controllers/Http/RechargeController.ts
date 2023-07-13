@@ -99,9 +99,9 @@ export default class RechargeController {
       console.log('request.raw()!: ', request.raw()!)
       const recharge = await Recharge.query().where('transaction_code', txid).firstOrFail()
       recharge.status = 'paid'
-      recharge.paymentData = JSON.parse(request.raw()!)
+      recharge.paymentData = request.raw()! as any
       await recharge.save()
-      return response.ok({ message: 'Recharge updated successfully' })
+      return response.ok({ message: 'Pedido de recarga atualizado' })
     } catch (error) {
       return response.notFound(error.message)
     }
