@@ -24,6 +24,9 @@ export default class Recharge extends BaseModel {
   public rechargeOptionId: number
 
   @column()
+  public value: number
+
+  @column()
   public transaction_code: string
 
   @column()
@@ -83,7 +86,8 @@ export default class Recharge extends BaseModel {
       const recharge = await Recharge.create({
         userId: user.id,
         rechargeOptionId: rechargeOption.id,
-        status: 'pending',
+        value: rechargeOption.creditedValue,
+        status: 'unpaid',
         transaction_code: chargeData?.txid,
         chargeData: chargeData,
       })
