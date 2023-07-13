@@ -95,12 +95,13 @@ export default class RechargeController {
 
   public async updateRecharge({ request, response }: HttpContextContract) {
     try {
-      const { txid } = request.body()
+      const { txid } = request.body().pix[0]
       console.log('request.raw()!: ', request.raw()!)
       const recharge = await Recharge.query().where('transaction_code', txid).firstOrFail()
       recharge.status = 'paid'
       recharge.paymentData = JSON.parse(request.raw()!)
-      recharge.save()
+      await recharge.save()
+      return response.ok({ message: 'Recharge updated successfully' })
     } catch (error) {
       return response.notFound(error.message)
     }
