@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import Pricing from 'App/Models/Pricing'
 import CurrencyRate from 'App/Models/CurrencyRate'
 import UserBalance from 'App/Models/UserBalance'
+import SocketIOController from 'App/Controllers/Http/SocketIOController'
 
 export default class UserOperation extends BaseModel {
   /*
@@ -86,20 +87,22 @@ export default class UserOperation extends BaseModel {
     rechargeId: number
   ): Promise<UserOperation> {
     try {
-      await user?.load('balance')
+      const balance = await UserBalance.findByOrFail('userId', user!.id)
 
       let operation = new UserOperation()
       operation.userId = user!.id
       operation.type = 'recharge'
       operation.value = value
-      operation.currentBalance = Number(user!.balance.currentBalance) + Number(value)
+      operation.currentBalance = Number(balance.currentBalance) + Number(value)
       operation.subjectType = 'recharges'
       operation.subjectId = rechargeId
 
       //atualizar o balanço com o valor final
-      user!.balance.currentBalance = operation.currentBalance
-      await user!.balance.save()
+      balance.currentBalance = Number(balance.currentBalance) + Number(value)
+      await balance.save()
       await operation.save()
+
+      SocketIOController.wsBalanceRefresh(user!)
 
       return operation
     } catch (error) {
@@ -137,6 +140,8 @@ export default class UserOperation extends BaseModel {
       //atualizar o balanço com o valor final
       balance.currentBalance = Number(balance.currentBalance) - Number(convertedValueUsdToBrl)
       await balance.save()
+
+      SocketIOController.wsBalanceRefresh(user!)
 
       return operation
     } catch (error) {

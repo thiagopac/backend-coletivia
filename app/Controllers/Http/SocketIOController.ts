@@ -23,6 +23,15 @@ export default class SocketIOController {
     }
   }
 
+  public static async wsBalanceRefresh(user: User) {
+    const userUuid = user.uuid
+
+    const socket = userSockets[userUuid]
+    if (socket) {
+      Ws.io.to(socket.id).emit('ch_balance_refresh', { message: 'refresh' })
+    }
+  }
+
   public static async wsShowToast(
     user: User,
     message: string,
