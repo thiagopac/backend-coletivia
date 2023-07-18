@@ -5,6 +5,8 @@ import MidjourneyImageGeneration from 'App/Models/MidjourneyImageGeneration'
 import { GoogleTranslator } from '@translate-tools/core/translators/GoogleTranslator'
 import { Midjourney } from 'midjourney'
 import Feature from 'App/Models/Feature'
+import SocketIOController from 'App/Controllers/Http/SocketIOController'
+import UserNotification from 'App/Notifications/UserNotification'
 
 const UNOFFICIAL_MIDJOURNEY_SERVER_ID = Env.get('UNOFFICIAL_MIDJOURNEY_SERVER_ID')
 const UNOFFICIAL_MIDJOURNEY_CHANNEL_ID = `${Env.get('UNOFFICIAL_MIDJOURNEY_CHANNEL_ID')}`
@@ -78,6 +80,12 @@ export default class UnofficialMidjourneyImageController {
       const translator = new GoogleTranslator()
       let text = prompt
 
+      SocketIOController.wsShowToast(
+        user!,
+        'Sua imagem está sendo gerada, te enviaremos uma notificação assim que ela estiver disponível',
+        'info'
+      )
+
       // Translate single string
       if (translate === true) {
         text = await translator.translate(prompt, 'pt-br', 'en-us').then((translate) => translate)
@@ -123,6 +131,20 @@ export default class UnofficialMidjourneyImageController {
         images: imagesArr,
       }) as any
       imageGeneration.save()
+
+      SocketIOController.wsShowToast(user!, 'Sua imagem está pronta!', 'success')
+
+      user!.notifyLater(
+        new UserNotification(
+          'Sua imagem está pronta!',
+          'Sua imagem foi gerada e já está disponível!',
+          'success',
+          'success',
+          `/image/midjourney/generation/${imageGeneration.uuid}`
+        )
+      )
+
+      user!.notificationRefresh()
 
       return imageGeneration
     } catch (error) {
