@@ -5,10 +5,29 @@ import User from 'App/Models/User'
 import Env from '@ioc:Adonis/Core/Env'
 import axios from 'axios'
 import UserOperation from 'App/Models/UserOperation'
-const PIX_URL = Env.get('PIX_URL')
-// const TEST_MOCK_PIX_URL = Env.get('TEST_MOCK_PIX_URL')
+import UserNotification from 'App/Notifications/UserNotification'
+const CHAVE_PIX = Env.get('CHAVE_PIX')
+// const PIX_URL = Env.get('PIX_URL')
+const TEST_MOCK_PIX_URL = Env.get('TEST_MOCK_PIX_URL')
 
 export default class RechargeController {
+  public async list({ auth, request, response }: HttpContextContract) {
+    try {
+      const user = auth.use('user').user
+      const { page, perPage } = request.qs()
+
+      const query = Recharge.query()
+        .preload('rechargeOption')
+        .where('user_id', user!.id)
+        .orderBy('id', 'desc')
+      const recharges = await query.paginate(page, perPage)
+
+      return recharges
+    } catch (error) {
+      return response.notFound(error.message)
+    }
+  }
+
   public async listOptions({ response }: HttpContextContract) {
     try {
       const options = RechargeOption.query().where('is_available', true)
@@ -83,15 +102,15 @@ export default class RechargeController {
         dataDeVencimento: tomorrow.toISOString(),
         expiracao: expirationMinutes * 60 * 1000,
       },
-      chave: '17751370000163',
+      chave: CHAVE_PIX,
       devedor: devedor,
       valor: {
         original: valorPix,
       },
     }
 
-    const cobImediata = await axios.post(`${PIX_URL}/pix`, payload)
-    // const cobImediata = await axios.post(`${TEST_MOCK_PIX_URL}/pix`, payload)
+    // const cobImediata = await axios.post(`${PIX_URL}/pix`, payload)
+    const cobImediata = await axios.post(`${TEST_MOCK_PIX_URL}/pix`, payload)
     return cobImediata.data
   }
 
@@ -106,6 +125,18 @@ export default class RechargeController {
       await recharge.save()
 
       UserOperation.createOperationRecharge(user!, recharge.value, recharge.id)
+
+      user!.notifyLater(
+        new UserNotification(
+          'Recarga efetuada com sucesso!',
+          'Recebemos o seu pagamento. Seus créditos já podem ser utilizados!',
+          'success',
+          'success',
+          '/recharge/list'
+        )
+      )
+
+      user!.notificationRefresh()
 
       return response.ok({ message: 'Pedido de recarga atualizado' })
     } catch (error) {
