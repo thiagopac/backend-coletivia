@@ -32,10 +32,18 @@ export default class Recharge extends BaseModel {
   @column()
   public status: string
 
-  @column({ serializeAs: null })
+  @column({
+    serialize: (value?: any) => {
+      return { qr_code: value?.pixCopiaECola }
+    },
+  })
   public chargeData: JSON
 
-  @column({ serializeAs: null })
+  @column({
+    serialize: (value?: any) => {
+      return { paid_at: value?.pix[0]?.horario }
+    },
+  })
   public paymentData: JSON
 
   @column.dateTime({ autoCreate: true })
