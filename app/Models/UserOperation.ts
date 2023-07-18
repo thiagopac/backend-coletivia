@@ -4,6 +4,7 @@ import User from './User'
 import { v4 as uuidv4 } from 'uuid'
 import Pricing from 'App/Models/Pricing'
 import CurrencyRate from 'App/Models/CurrencyRate'
+import UserBalance from 'App/Models/UserBalance'
 
 export default class UserOperation extends BaseModel {
   /*
@@ -116,9 +117,9 @@ export default class UserOperation extends BaseModel {
     try {
       const convertedValueUsdToBrl = await CurrencyRate.convertUsdToBrl(value)
       const usdBrlRateCurrent = await CurrencyRate.latestRateUsdtoBrl()
-      await user?.load('balance')
+      const balance = await UserBalance.findByOrFail('userId', user!.id)
 
-      if (user.balance.currentBalance < value) {
+      if (balance.currentBalance < value) {
         throw new Error('Saldo insuficiente para operação')
       }
 
@@ -128,16 +129,14 @@ export default class UserOperation extends BaseModel {
       operation.type = 'spending'
       operation.value = convertedValueUsdToBrl
       operation.usdBrlRate = usdBrlRateCurrent
-      operation.currentBalance =
-        Number(user!.balance.currentBalance) - Number(convertedValueUsdToBrl)
+      operation.currentBalance = Number(balance.currentBalance) - Number(convertedValueUsdToBrl)
       operation.subjectType = subjectType
       operation.subjectId = subjectId
+      await operation.save()
 
       //atualizar o balanço com o valor final
-      user!.balance.currentBalance = operation.currentBalance
-
-      await user!.balance.save()
-      await operation.save()
+      balance.currentBalance = Number(balance.currentBalance) - Number(convertedValueUsdToBrl)
+      await balance.save()
 
       return operation
     } catch (error) {
