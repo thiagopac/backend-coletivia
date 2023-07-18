@@ -119,14 +119,6 @@ export default class UnofficialMidjourneyImageController {
       delete image?.options
       imagesArr.push(image)
 
-      UserOperation.createOperationSpending(
-        user,
-        feature.model.pricing.outputValue,
-        feature.model.pricing.id,
-        'midjourney_image_generations',
-        imageGeneration.id
-      )
-
       imageGeneration.images = JSON.stringify({
         images: imagesArr,
       }) as any
@@ -145,6 +137,14 @@ export default class UnofficialMidjourneyImageController {
       )
 
       user!.notificationRefresh()
+
+      UserOperation.createOperationSpending(
+        user,
+        feature.model.pricing.outputValue,
+        feature.model.pricing.id,
+        'midjourney_image_generations',
+        imageGeneration.id
+      )
 
       return imageGeneration
     } catch (error) {
