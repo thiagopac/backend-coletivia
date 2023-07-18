@@ -28,6 +28,7 @@ export default class AuthController {
       await user?.load('info')
       await user?.info.load('city')
       await user?.load('balance')
+
       return user
     } catch (error) {
       return response.unauthorized('Invalid credentials')

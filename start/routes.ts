@@ -143,10 +143,18 @@ Route.group(() => {
     }).prefix('/operation')
 
     Route.group(() => {
+      Route.get('list', 'RechargeController.list')
       Route.get('options', 'RechargeController.listOptions')
       Route.post('checkout', 'RechargeController.createRecharge')
       Route.get('retrieve/:uuid', 'RechargeController.retrieve')
     }).prefix('/recharge')
+
+    Route.group(() => {
+      Route.get('list/:type', 'NotificationController.list')
+      Route.post('mark-as-read', 'NotificationController.markAsRead')
+      Route.post('mark-as-unread', 'NotificationController.markAsUnread')
+      Route.post('mark-all-as-read', 'NotificationController.markAllAsRead')
+    }).prefix('/notification')
   }).middleware('auth:user')
 
   // admin-authenticated routes

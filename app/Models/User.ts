@@ -19,8 +19,12 @@ import DalleAiImageGeneration from 'App/Models/DalleAiImageGeneration'
 import AiDocument from 'App/Models/AiDocument'
 import InstagramPost from 'App/Models/InstagramPost'
 import Recharge from 'App/Models/Recharge'
+import { compose } from '@ioc:Adonis/Core/Helpers'
+import { Notifiable } from '@ioc:Verful/Notification/Mixins'
+import Notification from 'App/Models/Notification'
+import SocketIOController from 'App/Controllers/Http/SocketIOController'
 
-export default class User extends BaseModel {
+export default class User extends compose(BaseModel, Notifiable('notifications')) {
   /*
   |--------------------------------------------------------------------------
   | Columns
@@ -105,4 +109,77 @@ export default class User extends BaseModel {
   | Methods
   |--------------------------------------------------------------------------
   */
+
+  public async getAllNotifications() {
+    try {
+      const notifications = await Notification.query()
+        .where('notifiable_id', this.id)
+        .orderBy('id', 'desc')
+      return notifications
+    } catch (error) {
+      return error.message
+    }
+  }
+
+  public async getUnreadNotifications() {
+    try {
+      const notifications = await Notification.query()
+        .where('notifiable_id', this.id)
+        .andWhereNull('read_at')
+        .orderBy('id', 'desc')
+      return notifications
+    } catch (error) {
+      return error.message
+    }
+  }
+
+  public async getReadNotifications() {
+    try {
+      const notifications = await Notification.query()
+        .where('notifiable_id', this.id)
+        .andWhereNotNull('read_at')
+        .orderBy('id', 'desc')
+      return notifications
+    } catch (error) {
+      return error.message
+    }
+  }
+
+  public async markAllNotificationsAsRead() {
+    try {
+      const notifications = await Notification.query()
+        .where('notifiable_id', this.id)
+        .andWhereNull('read_at')
+        .update({ read_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss') })
+      return notifications
+    } catch (error) {
+      return error.message
+    }
+  }
+
+  public async markNotificationAsRead(notification: number) {
+    try {
+      return await Notification.query()
+        .where('notifiable_id', this.id)
+        .andWhere('id', notification)
+        .update({ read_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss') })
+    } catch (error) {
+      return error.message
+    }
+  }
+
+  public async markNotificationAsUnread(notification: number) {
+    try {
+      return await Notification.query()
+        .where('notifiable_id', this.id)
+        .andWhere('id', notification)
+        .update({ read_at: null })
+    } catch (error) {
+      return error.message
+    }
+  }
+
+  public async notificationRefresh() {
+    SocketIOController.wsNotificationRefresh(this)
+  }
 }
