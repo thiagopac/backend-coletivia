@@ -7,8 +7,8 @@ import axios from 'axios'
 import UserOperation from 'App/Models/UserOperation'
 import UserNotification from 'App/Notifications/UserNotification'
 const CHAVE_PIX = Env.get('CHAVE_PIX')
-// const PIX_URL = Env.get('PIX_URL')
-const TEST_MOCK_PIX_URL = Env.get('TEST_MOCK_PIX_URL')
+const PIX_URL = Env.get('PIX_URL')
+// const TEST_MOCK_PIX_URL = Env.get('TEST_MOCK_PIX_URL')
 
 export default class RechargeController {
   public async list({ auth, request, response }: HttpContextContract) {
@@ -109,8 +109,8 @@ export default class RechargeController {
       },
     }
 
-    // const cobImediata = await axios.post(`${PIX_URL}/pix`, payload)
-    const cobImediata = await axios.post(`${TEST_MOCK_PIX_URL}/pix`, payload)
+    const cobImediata = await axios.post(`${PIX_URL}/pix`, payload)
+    // const cobImediata = await axios.post(`${TEST_MOCK_PIX_URL}/pix`, payload)
     return cobImediata.data
   }
 
