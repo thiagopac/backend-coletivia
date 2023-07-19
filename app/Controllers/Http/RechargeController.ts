@@ -6,6 +6,7 @@ import Env from '@ioc:Adonis/Core/Env'
 import axios from 'axios'
 import UserOperation from 'App/Models/UserOperation'
 import UserNotification from 'App/Notifications/UserNotification'
+import SocketIOController from 'App/Controllers/Http/SocketIOController'
 const CHAVE_PIX = Env.get('CHAVE_PIX')
 const PIX_URL = Env.get('PIX_URL')
 // const TEST_MOCK_PIX_URL = Env.get('TEST_MOCK_PIX_URL')
@@ -73,6 +74,25 @@ export default class RechargeController {
     await user?.load('info')
     const cobImediata = await this.createPixCobImediata(user!, rechargeOption)
     const recharge = await Recharge.createRecharge(user!, rechargeOption, cobImediata)
+
+    user!.notifyLater(
+      new UserNotification(
+        'Seu pedido de recarga de créditos foi registrado!',
+        `Veja o pedido de recarga em: ${user?.info.firstName} ${user?.info.lastName} > Meus pedidos`,
+        'success',
+        'success',
+        '/recharge/list'
+      )
+    )
+
+    user!.notificationRefresh()
+
+    SocketIOController.wsShowToast(
+      user!,
+      'Seu pedido de recarga de créditos foi criado!',
+      'success'
+    )
+
     return recharge
   }
 
@@ -137,6 +157,7 @@ export default class RechargeController {
       )
 
       user!.notificationRefresh()
+      SocketIOController.wsShowToast(user!, 'Recarga efetuada com sucesso!', 'success')
 
       return response.ok({ message: 'Pedido de recarga atualizado' })
     } catch (error) {
