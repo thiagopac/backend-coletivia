@@ -76,9 +76,9 @@ Route.group(() => {
       Route.get(':uuid', 'ChatController.retrieveChat')
       Route.get(':uuid/messages', 'ChatController.messages')
 
-      // Route.post('send-messages', 'ChatController.createMessage')
+      Route.post('send-messages', 'ChatController.createMessage')
       // Route.post('send-messages', 'GenerativeAITextController.fakeStream')
-      Route.post('send-messages', 'GenerativeAITextController.streamRandomText')
+      // Route.post('send-messages', 'GenerativeAITextController.streamRandomText')
       Route.post('continue', 'GenerativeAITextController.streamRandomText')
 
       Route.post('send-messages-single', 'ChatController.createMessageSingle')
