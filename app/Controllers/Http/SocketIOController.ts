@@ -44,4 +44,13 @@ export default class SocketIOController {
       Ws.io.to(socket.id).emit('ch_show_toast', { message: message, icon: icon })
     }
   }
+
+  public static async wsCheckoutRefresh(user: User) {
+    const userUuid = user.uuid
+
+    const socket = userSockets[userUuid]
+    if (socket) {
+      Ws.io.to(socket.id).emit('ch_checkout_refresh', { message: 'refresh' })
+    }
+  }
 }
