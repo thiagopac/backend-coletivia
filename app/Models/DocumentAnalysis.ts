@@ -97,7 +97,11 @@ export default class DocumentAnalysis extends compose(BaseModel, SoftDeletes) {
   |--------------------------------------------------------------------------
   */
 
-  public static async createDocumentAnalysis(user: User, feature: Feature, document: AiDocument) {
+  public static async createDocumentAnalysis(
+    user: User,
+    feature: Feature,
+    document: AiDocument
+  ): Promise<DocumentAnalysis | { error: string }> {
     try {
       const analysis = await DocumentAnalysis.create({
         userId: user.id,
@@ -108,34 +112,42 @@ export default class DocumentAnalysis extends compose(BaseModel, SoftDeletes) {
         messages: { messages: [] } as any,
       })
 
-      if (!analysis) throw new Error('Erro ao criar análise de documento')
+      if (!analysis) {
+        return { error: 'Erro ao criar análise de documento' }
+      }
 
       return analysis
     } catch (error) {
-      return error.message
+      return { error: error.message }
     }
   }
 
   public static async getDocumentAnalysisWith(
     field: string,
     value: any
-  ): Promise<DocumentAnalysis> {
+  ): Promise<DocumentAnalysis | { error: string }> {
     try {
       const analysis = await DocumentAnalysis.query()
         .preload('feature', (query) => query.preload('model'))
         .where(field, value)
         .firstOrFail()
 
-      if (!analysis) throw new Error('Análise de documento não encontrada ou não disponível')
+      if (!analysis) {
+        return { error: 'Análise de documento não encontrada ou não disponível' }
+      }
 
       const pricing = await Pricing.latestPriceForModelUuid(analysis.feature.model.uuid)
-      if (!pricing) throw new Error('Precificação para modelo não encontrado')
+
+      if ('error' in pricing) {
+        // Se pricing for um objeto de erro, retornar o objeto de erro
+        return pricing
+      }
 
       analysis.feature.model.pricing = pricing
 
       return analysis
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 }

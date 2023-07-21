@@ -85,7 +85,7 @@ export default class UserOperation extends BaseModel {
     user: User,
     value: number,
     rechargeId: number
-  ): Promise<UserOperation> {
+  ): Promise<UserOperation | { error: string }> {
     try {
       const balance = await UserBalance.findByOrFail('userId', user!.id)
 
@@ -106,7 +106,7 @@ export default class UserOperation extends BaseModel {
 
       return operation
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 
@@ -116,14 +116,24 @@ export default class UserOperation extends BaseModel {
     modelPricingId: number,
     subjectType: string,
     subjectId: number
-  ): Promise<UserOperation> {
+  ): Promise<UserOperation | { error: string }> {
     try {
-      const convertedValueUsdToBrl = await CurrencyRate.convertUsdToBrl(value)
-      const usdBrlRateCurrent = await CurrencyRate.latestRateUsdtoBrl()
-      const balance = await UserBalance.findByOrFail('userId', user!.id)
+      const convertedValueUsdToBrl = +(await CurrencyRate.convertUsdToBrl(value))
 
-      if (balance.currentBalance < value) {
-        throw new Error('Saldo insuficiente para operação')
+      if (!convertedValueUsdToBrl) {
+        throw new Error('Erro ao obter valor conversão de USD para BRL')
+      }
+
+      const usdBrlRateCurrent = await CurrencyRate.latestRateUsdtoBrl()
+
+      if (typeof usdBrlRateCurrent !== 'number') {
+        return { error: usdBrlRateCurrent.error }
+      }
+
+      const balance = await UserBalance.query().where('userId', user!.id).first()
+
+      if (!balance) {
+        throw new Error('Saldo do usuário não encontrado')
       }
 
       let operation = new UserOperation()
@@ -132,20 +142,21 @@ export default class UserOperation extends BaseModel {
       operation.type = 'spending'
       operation.value = convertedValueUsdToBrl
       operation.usdBrlRate = usdBrlRateCurrent
-      operation.currentBalance = Number(balance.currentBalance) - Number(convertedValueUsdToBrl)
+      operation.currentBalance = Number(balance.currentBalance) - convertedValueUsdToBrl
       operation.subjectType = subjectType
       operation.subjectId = subjectId
+
       await operation.save()
 
       //atualizar o balanço com o valor final
-      balance.currentBalance = Number(balance.currentBalance) - Number(convertedValueUsdToBrl)
+      balance.currentBalance = Number(balance.currentBalance) - convertedValueUsdToBrl
       await balance.save()
 
       SocketIOController.wsBalanceRefresh(user!)
 
       return operation
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 }

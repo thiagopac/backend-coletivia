@@ -25,7 +25,9 @@ export default class RechargeController {
 
       return recharges
     } catch (error) {
-      return response.notFound(error.message)
+      return response.status(500).send({
+        error: error.message,
+      })
     }
   }
 
@@ -33,12 +35,16 @@ export default class RechargeController {
     try {
       const options = RechargeOption.query().where('is_available', true)
       if (!options) {
-        throw new Error('Nenhuma opção de recarga encontrada')
+        response.status(404).send({
+          error: 'Nenhuma opção de recarga encontrada',
+        })
       }
 
       return options
     } catch (error) {
-      return response.notFound(error.message)
+      return response.status(500).send({
+        error: error.message,
+      })
     }
   }
 
@@ -46,8 +52,11 @@ export default class RechargeController {
     try {
       const recharge = await Recharge.getRechargeWith('uuid', params.uuid)
       if (!recharge) {
-        throw new Error('Recarga não encontrada')
+        response.status(404).send({
+          error: 'Recarga não encontrada',
+        })
       }
+
       const result = {
         uuid: recharge.uuid,
         status: recharge.status,
@@ -62,38 +71,51 @@ export default class RechargeController {
       }
       return result
     } catch (error) {
-      return response.notFound(error.message)
+      return response.status(500).send({
+        error: error.message,
+      })
     }
   }
 
-  public async createRecharge({ auth, request }: HttpContextContract) {
-    const { option } = request.body()
+  public async createRecharge({ auth, response, request }: HttpContextContract) {
+    try {
+      const { option } = request.body()
 
-    const rechargeOption = await RechargeOption.getRechargeOptionWith('uuid', option)
-    const user = await User.find(auth.use('user').user!.id)
-    await user?.load('info')
-    const cobImediata = await this.createPixCobImediata(user!, rechargeOption)
-    const recharge = await Recharge.createRecharge(user!, rechargeOption, cobImediata)
+      const rechargeOption = await RechargeOption.getRechargeOptionWith('uuid', option)
+      if ('error' in rechargeOption) {
+        return response.status(404).send({
+          error: rechargeOption.error,
+        })
+      }
 
-    user!.notifyLater(
-      new UserNotification(
-        'Seu pedido de recarga de créditos foi registrado!',
-        `Veja o pedido de recarga em: ${user?.info.firstName} ${user?.info.lastName} > Meus pedidos`,
-        'success',
-        'success',
-        '/recharge/list'
+      const user = await User.find(auth.use('user').user!.id)
+      await user?.load('info')
+      const cobImediata = await this.createPixCobImediata(user!, rechargeOption)
+      const recharge = await Recharge.createRecharge(user!, rechargeOption, cobImediata)
+
+      user!.notifyLater(
+        new UserNotification(
+          user!,
+          'Seu pedido de recarga de créditos foi registrado!',
+          `Veja o pedido de recarga em: ${user?.info.firstName} ${user?.info.lastName} > Meus pedidos`,
+          'success',
+          'success',
+          '/recharge/list'
+        )
       )
-    )
 
-    user!.notificationRefresh()
+      SocketIOController.wsShowToast(
+        user!,
+        'Seu pedido de recarga de créditos foi registrado!',
+        'success'
+      )
 
-    SocketIOController.wsShowToast(
-      user!,
-      'Seu pedido de recarga de créditos foi criado!',
-      'success'
-    )
-
-    return recharge
+      return recharge
+    } catch (error) {
+      return response.status(500).send({
+        error: error.message,
+      })
+    }
   }
 
   public async createPixCobImediata(user: User, rechargeOption: RechargeOption): Promise<object> {
@@ -148,6 +170,7 @@ export default class RechargeController {
 
       user!.notifyLater(
         new UserNotification(
+          user!,
           'Recarga efetuada com sucesso!',
           'Recebemos o seu pagamento. Seus créditos já podem ser utilizados!',
           'success',
@@ -156,12 +179,13 @@ export default class RechargeController {
         )
       )
 
-      user!.notificationRefresh()
       SocketIOController.wsShowToast(user!, 'Recarga efetuada com sucesso!', 'success')
 
       return response.ok({ message: 'Pedido de recarga atualizado' })
     } catch (error) {
-      return response.notFound(error.message)
+      return response.status(500).send({
+        error: error.message,
+      })
     }
   }
 }

@@ -34,7 +34,9 @@ export default class UsersController {
       const data = request.only(allowedFields) as Partial<UserInfo>
 
       if (!info) {
-        throw new Error('Info not found')
+        return response.status(404).send({
+          error: 'Informações não encontradas',
+        })
       }
 
       info.merge(data)
@@ -55,8 +57,6 @@ export default class UsersController {
           info.preload('city')
         })
         .orderBy('id', 'desc')
-
-      if (!users) throw new Error('No users found')
 
       return users
     } catch (error) {

@@ -73,21 +73,26 @@ export default class InstagramPost extends compose(BaseModel, SoftDeletes) {
   |--------------------------------------------------------------------------
   */
 
-  public static async createInstagramPost(user: User): Promise<InstagramPost> {
+  public static async createInstagramPost(user: User): Promise<InstagramPost | { error: string }> {
     try {
       const post = await InstagramPost.create({
         userId: user.id,
       })
 
-      if (!post) throw new Error('Erro ao criar post')
+      if (!post) {
+        return { error: 'Erro ao criar post' }
+      }
 
       return post
     } catch (error) {
-      return error.message
+      return { error: error.message }
     }
   }
 
-  public static async getInstagramPostWith(field: string, value: any): Promise<InstagramPost> {
+  public static async getInstagramPostWith(
+    field: string,
+    value: any
+  ): Promise<InstagramPost | { error: string }> {
     try {
       const post = await InstagramPost.query()
         .preload('aiWriting', (writing) => {
@@ -103,19 +108,30 @@ export default class InstagramPost extends compose(BaseModel, SoftDeletes) {
         .where(field, value)
         .firstOrFail()
 
-      if (!post) throw new Error('Post não encontrado')
+      if (!post) {
+        return { error: 'Post não encontrado' }
+      }
 
-      post.aiWriting.feature.model.pricing = await Pricing.latestPriceForModelUuid(
+      console.log(post.midjourneyImageGeneration)
+
+      const aiWritingPricing = await Pricing.latestPriceForModelUuid(
         post.aiWriting.feature.model.uuid
       )
-
-      post.midjourneyImageGeneration.feature.model.pricing = await Pricing.latestPriceForModelUuid(
+      const midjourneyPricing = await Pricing.latestPriceForModelUuid(
         post.midjourneyImageGeneration.feature.model.uuid
       )
 
+      if ('error' in aiWritingPricing || 'error' in midjourneyPricing) {
+        // Se houver algum objeto de erro nas precificações, retornar o objeto de erro
+        return { error: 'Erro na obtenção da precificação' }
+      }
+
+      post.aiWriting.feature.model.pricing = aiWritingPricing
+      post.midjourneyImageGeneration.feature.model.pricing = midjourneyPricing
+
       return post
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 }

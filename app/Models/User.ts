@@ -117,7 +117,7 @@ export default class User extends compose(BaseModel, Notifiable('notifications')
         .orderBy('id', 'desc')
       return notifications
     } catch (error) {
-      return error.message
+      return { error: error.message }
     }
   }
 
@@ -129,7 +129,7 @@ export default class User extends compose(BaseModel, Notifiable('notifications')
         .orderBy('id', 'desc')
       return notifications
     } catch (error) {
-      return error.message
+      return { error: error.message }
     }
   }
 
@@ -141,7 +141,7 @@ export default class User extends compose(BaseModel, Notifiable('notifications')
         .orderBy('id', 'desc')
       return notifications
     } catch (error) {
-      return error.message
+      return { error: error.message }
     }
   }
 
@@ -153,33 +153,51 @@ export default class User extends compose(BaseModel, Notifiable('notifications')
         .update({ read_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss') })
       return notifications
     } catch (error) {
-      return error.message
+      return { error: error.message }
     }
   }
 
   public async markNotificationAsRead(notification: number) {
     try {
-      return await Notification.query()
+      const result = await Notification.query()
         .where('notifiable_id', this.id)
         .andWhere('id', notification)
         .update({ read_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss') })
+
+      return result
     } catch (error) {
-      return error.message
+      return { error: error.message }
     }
   }
 
   public async markNotificationAsUnread(notification: number) {
     try {
-      return await Notification.query()
+      const result = await Notification.query()
         .where('notifiable_id', this.id)
         .andWhere('id', notification)
         .update({ read_at: null })
+
+      return result
     } catch (error) {
-      return error.message
+      return { error: error.message }
     }
   }
 
   public async notificationRefresh() {
     SocketIOController.wsNotificationRefresh(this)
+  }
+
+  public async hasEnoughBalance(): Promise<boolean | { error: string }> {
+    try {
+      const balance = await UserBalance.query().where('user_id', this.id).firstOrFail()
+
+      if (balance.currentBalance <= 0) {
+        SocketIOController.wsInsufficientBalanceAlert(this)
+      }
+
+      return balance.currentBalance >= 0
+    } catch (error) {
+      return { error: error.message }
+    }
   }
 }

@@ -34,29 +34,39 @@ export default class CurrencyRate extends BaseModel {
   |--------------------------------------------------------------------------
   */
 
-  public static async latestRateUsdtoBrl(): Promise<number> {
+  public static async latestRateUsdtoBrl(): Promise<number | { error: string }> {
     try {
       const currencyRate = await CurrencyRate.query()
         .where('from', 'USD')
         .where('to', 'BRL')
         .orderBy('id', 'desc')
-        .firstOrFail()
-      return currencyRate.rate
+        .first()
+
+      if (!currencyRate) {
+        throw new Error('Erro ao obter taxa de conversão')
+      }
+
+      return +currencyRate.rate
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 
-  public static async convertUsdToBrl(value: number): Promise<number> {
+  public static async convertUsdToBrl(value: number): Promise<number | { error: string }> {
     try {
       const latestRate = await CurrencyRate.latestRateUsdtoBrl()
-      return value * latestRate
+
+      if (typeof latestRate !== 'number') {
+        throw new Error('Erro ao obter taxa de conversão atualizada')
+      }
+
+      return +(value * latestRate)
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 
-  public static async createCurrencyRateUsdtoBrl(): Promise<CurrencyRate> {
+  public static async createCurrencyRateUsdtoBrl(): Promise<CurrencyRate | { error: string }> {
     try {
       let currencyConverter = new CC({ from: 'USD', to: 'BRL' })
       const usdBrlRate = await currencyConverter.rates()
@@ -70,11 +80,14 @@ export default class CurrencyRate extends BaseModel {
 
       return currencyRate
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 
-  public static async createCurrencyRateFromTo(from: string, to: string): Promise<CurrencyRate> {
+  public static async createCurrencyRateFromTo(
+    from: string,
+    to: string
+  ): Promise<CurrencyRate | { error: string }> {
     try {
       let currencyConverter = new CC({ from: from.toUpperCase(), to: to.toUpperCase() })
       const rate = await currencyConverter.rates()
@@ -88,7 +101,7 @@ export default class CurrencyRate extends BaseModel {
 
       return currencyRate
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 }
