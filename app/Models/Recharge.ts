@@ -89,7 +89,7 @@ export default class Recharge extends BaseModel {
     user: User,
     rechargeOption: RechargeOption,
     chargeData?: any
-  ): Promise<Recharge> {
+  ): Promise<Recharge | { error: string }> {
     try {
       const recharge = await Recharge.create({
         userId: user.id,
@@ -100,11 +100,13 @@ export default class Recharge extends BaseModel {
         chargeData: chargeData,
       })
 
-      if (!recharge) throw new Error('Erro ao ao criar registro de recarga')
+      if (!recharge) {
+        return { error: 'Erro ao criar registro de recarga' }
+      }
 
       return recharge
     } catch (error) {
-      return error.message
+      return { error: error.message }
     }
   }
 
@@ -115,11 +117,14 @@ export default class Recharge extends BaseModel {
         .preload('rechargeOption')
         .where(field, value)
         .firstOrFail()
-      if (!recharge) throw new Error('Recarga não encontrada')
+
+      if (!recharge) {
+        throw 'Recarga não encontrada'
+      }
 
       return recharge
     } catch (error) {
-      throw new Error(error)
+      throw error
     }
   }
 }

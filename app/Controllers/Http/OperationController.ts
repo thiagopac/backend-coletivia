@@ -12,7 +12,9 @@ export default class OperationController {
 
       return operations
     } catch (error) {
-      return response.notFound(error.message)
+      return response.status(500).send({
+        error: error.message,
+      })
     }
   }
 }

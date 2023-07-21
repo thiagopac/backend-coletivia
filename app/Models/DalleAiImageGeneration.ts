@@ -94,7 +94,7 @@ export default class DalleAiImageGeneration extends compose(BaseModel, SoftDelet
     feature: Feature,
     size: string,
     prompt: string
-  ) {
+  ): Promise<DalleAiImageGeneration | { error: string }> {
     try {
       const imageGeneration = await DalleAiImageGeneration.create({
         userId: user.id,
@@ -105,11 +105,13 @@ export default class DalleAiImageGeneration extends compose(BaseModel, SoftDelet
         images: { images: [] } as any,
       })
 
-      if (!imageGeneration) throw new Error('Erro ao geração de imagens')
+      if (!imageGeneration) {
+        return { error: 'Erro ao gerar imagens' }
+      }
 
       return imageGeneration
     } catch (error) {
-      return error.message
+      return { error: error.message }
     }
   }
 }
