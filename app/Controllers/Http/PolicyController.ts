@@ -10,7 +10,9 @@ export default class PolicyController {
         .firstOrFail()
       return policy
     } catch (error) {
-      return response.status(404).json({ error: 'Política não encontrada' })
+      return response.status(500).send({
+        error: error.message,
+      })
     }
   }
 }

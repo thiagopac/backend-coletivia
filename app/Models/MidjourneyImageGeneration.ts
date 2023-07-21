@@ -105,7 +105,7 @@ export default class MidjourneyImageGeneration extends compose(BaseModel, SoftDe
     user: User,
     feature: Feature,
     prompt: string
-  ): Promise<MidjourneyImageGeneration> {
+  ): Promise<MidjourneyImageGeneration | { error: string }> {
     try {
       const imageGeneration = await MidjourneyImageGeneration.create({
         userId: user.id,
@@ -117,34 +117,44 @@ export default class MidjourneyImageGeneration extends compose(BaseModel, SoftDe
         upscales: { upscales: [] } as any,
       })
 
-      if (!imageGeneration) throw new Error('Erro ao geração de imagens')
+      if (!imageGeneration) {
+        return { error: 'Erro ao gerar imagens' }
+      }
 
       return imageGeneration
     } catch (error) {
-      return error.message
+      return { error: error.message }
     }
   }
 
   public static async getImageGenerationWith(
     field: string,
     value: any
-  ): Promise<MidjourneyImageGeneration> {
+  ): Promise<MidjourneyImageGeneration | { error: string }> {
     try {
       const generation = await MidjourneyImageGeneration.query()
         .preload('feature', (feature) => {
           feature.preload('model')
         })
         .where(field, value)
-        .firstOrFail()
+        .first()
 
-      if (!generation) throw new Error('Imagem não encontrada')
+      if (!generation) {
+        return { error: 'Imagem não encontrada' }
+      }
 
-      generation.feature.model.pricing = await Pricing.latestPriceForModelUuid(
-        generation.feature.model.uuid
-      )
+      const pricing = await Pricing.latestPriceForModelUuid(generation.feature.model.uuid)
+
+      if ('error' in pricing) {
+        // Se pricing for um objeto de erro, retornar o objeto de erro
+        return pricing
+      }
+
+      generation.feature.model.pricing = pricing
+
       return generation
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 }

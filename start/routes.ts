@@ -39,6 +39,10 @@ Route.group(() => {
     Route.group(() => {
       Route.post('pix', 'RechargeController.updateRecharge')
     }).prefix('/webhook')
+
+    Route.group(() => {
+      Route.get('fetch-currency-rate-usd-brl', 'CurrencyRateController.fetchUsdBrl')
+    }).prefix('/scheduled')
   })
 
   //user-authenticated routes
@@ -172,8 +176,5 @@ Route.group(() => {
         Route.get('list', 'AdminsController.list')
       }).prefix('/admin')
     }).prefix('/management')
-    Route.group(() => {
-      Route.get('fetch-currency-rate-usd-brl', 'CurrencyRateController.fetchUsdBrl')
-    }).prefix('/scheduled')
   }).middleware('auth:admin')
 }).prefix('/api')

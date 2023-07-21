@@ -73,20 +73,28 @@ export default class AiModel extends BaseModel {
   |--------------------------------------------------------------------------
   */
 
-  public static async getModelWith(field: string, value: any): Promise<AiModel> {
+  public static async getModelWith(
+    field: string,
+    value: any
+  ): Promise<AiModel | { error: string }> {
     try {
       const aiModel = await AiModel.query().where(field, value).where('is_available', true).first()
 
-      if (!aiModel) throw new Error('Modelo não encontrado ou não disponível')
+      if (!aiModel) {
+        return { error: 'Modelo não encontrado ou não disponível' }
+      }
 
       const pricing = await Pricing.latestPriceForModelUuid(aiModel.uuid)
-      if (!pricing) throw new Error('Precificação para modelo não encontrado')
+
+      if ('error' in pricing) {
+        return { error: pricing.error }
+      }
 
       aiModel.pricing = pricing
 
       return aiModel
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 }

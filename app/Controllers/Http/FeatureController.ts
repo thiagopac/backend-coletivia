@@ -21,7 +21,14 @@ export default class FeatureController {
       const aiDocument = await AiDocument.query()
         .select(['id'])
         .where('uuid', params.document)
-        .firstOrFail()
+        .first()
+
+      if (!aiDocument) {
+        return response.status(404).send({
+          error: 'Documento não encontrado',
+        })
+      }
+
       const features = await Feature.query()
         .preload('analyses', (analysis) => {
           analysis
@@ -31,9 +38,17 @@ export default class FeatureController {
         })
         .where('suitness', 'summarization')
 
+      if (!features) {
+        return response.status(404).send({
+          error: 'Funcionalidade não encontrada',
+        })
+      }
+
       return features
     } catch (error) {
-      return response.notFound(error.message)
+      return response.status(500).send({
+        error: error.message,
+      })
     }
   }
 }

@@ -10,8 +10,10 @@ export default class AuthController {
       const token = await auth.use('user').attempt(email, password, { expiresIn: '365days' })
       return token
     } catch (error) {
-      console.log('error: ', error)
-      return response.unauthorized('Invalid credentials')
+      console.error('error: ', error)
+      return response.status(401).send({
+        error: 'Credenciais inválidas',
+      })
     }
   }
 
@@ -31,7 +33,9 @@ export default class AuthController {
 
       return user
     } catch (error) {
-      return response.unauthorized('Invalid credentials')
+      return response.status(401).send({
+        error: 'Credenciais inválidas',
+      })
     }
   }
 
@@ -46,7 +50,7 @@ export default class AuthController {
         phone: request.input('phone'),
         registration_type: request.input('registration_type'),
         cpf_cnpj: request.input('cpf_cnpj'),
-        city_id: 1991, //forçando cidade ao cadastrar ser Belo Horizonte - MG request.input('city_id')
+        city_id: 1991, // forçando cidade ao cadastrar ser Belo Horizonte - MG request.input('city_id')
       }
 
       const info = await UserInfo.create(createInfo)
@@ -57,9 +61,9 @@ export default class AuthController {
 
       response.json(user)
     } catch (error) {
-      console.log(error)
+      console.error(error)
       response.status(500).send({
-        error: 'Unexpected error while creating user',
+        error: 'Erro inesperado ao criar o usuário',
       })
     }
   }
