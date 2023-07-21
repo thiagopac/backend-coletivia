@@ -82,7 +82,9 @@ export default class Pricing extends BaseModel {
   |--------------------------------------------------------------------------
   */
 
-  public static async latestPriceForModelUuid(modelUuid: string): Promise<Pricing> {
+  public static async latestPriceForModelUuid(
+    modelUuid: string
+  ): Promise<Pricing | { error: string }> {
     try {
       const aiModel = await AiModel.query()
         .where('uuid', modelUuid)
@@ -94,11 +96,13 @@ export default class Pricing extends BaseModel {
         .orderBy('id', 'desc')
         .firstOrFail()
 
-      if (!pricing) throw new Error('Precificação não encontrada para modelo')
+      if (!pricing) {
+        return { error: 'Precificação não encontrada para modelo' }
+      }
 
       return pricing
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 }

@@ -97,16 +97,29 @@ export default class Feature extends compose(BaseModel, SoftDeletes) {
   |--------------------------------------------------------------------------
   */
 
-  public static async getFeatureWith(field: string, value: any): Promise<Feature> {
+  public static async getFeatureWith(
+    field: string,
+    value: any
+  ): Promise<Feature | { error: string }> {
     try {
-      const feature = await Feature.query().preload('model').where(field, value).firstOrFail()
-      if (!feature) throw new Error('Funcionalidade não encontrada')
+      const feature = await Feature.query().preload('model').where(field, value).first()
 
-      feature.model.pricing = await Pricing.latestPriceForModelUuid(feature.model.uuid)
+      if (!feature) {
+        return { error: 'Funcionalidade não encontrada' }
+      }
+
+      const pricing = await Pricing.latestPriceForModelUuid(feature.model.uuid)
+
+      if ('error' in pricing) {
+        // Se pricing for um objeto de erro, retornar o objeto de erro
+        return pricing
+      }
+
+      feature.model.pricing = pricing
 
       return feature
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 }

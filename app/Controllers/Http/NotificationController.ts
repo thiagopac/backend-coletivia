@@ -1,4 +1,5 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+// import SocketIOController from 'App/Controllers/Http/SocketIOController'
 import Notification from 'App/Models/Notification'
 
 export default class RechargeController {
@@ -33,7 +34,9 @@ export default class RechargeController {
         }
       }
     } catch (error) {
-      return response.notFound(error.message)
+      return response.status(500).send({
+        error: error.message,
+      })
     }
   }
 
@@ -45,7 +48,9 @@ export default class RechargeController {
       const notification = await user?.markNotificationAsRead(id)
       return notification
     } catch (error) {
-      return response.notFound(error.message)
+      return response.status(500).send({
+        error: error.message,
+      })
     }
   }
 
@@ -57,7 +62,9 @@ export default class RechargeController {
       const notification = await user?.markNotificationAsUnread(id)
       return notification
     } catch (error) {
-      return response.notFound(error.message)
+      return response.status(500).send({
+        error: error.message,
+      })
     }
   }
 
@@ -68,7 +75,9 @@ export default class RechargeController {
       const notifications = await user?.markAllNotificationsAsRead()
       return notifications
     } catch (error) {
-      return response.notFound(error.message)
+      return response.status(500).send({
+        error: error.message,
+      })
     }
   }
 }

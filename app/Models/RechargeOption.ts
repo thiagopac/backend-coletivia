@@ -75,14 +75,20 @@ export default class RechargeOption extends BaseModel {
   |--------------------------------------------------------------------------
   */
 
-  public static async getRechargeOptionWith(field: string, value: any): Promise<RechargeOption> {
+  public static async getRechargeOptionWith(
+    field: string,
+    value: any
+  ): Promise<RechargeOption | { error: string }> {
     try {
       const rechargeOption = await RechargeOption.query().where(field, value).firstOrFail()
-      if (!rechargeOption) throw new Error('Opção de recarga não encontrada')
+
+      if (!rechargeOption) {
+        return { error: 'Opção de recarga não encontrada' }
+      }
 
       return rechargeOption
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 }
