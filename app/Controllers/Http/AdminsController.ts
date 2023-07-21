@@ -13,7 +13,7 @@ export default class AdminsController {
 
       response.json(admin)
     } catch (error) {
-      response.status(500).send({
+      return response.status(500).send({
         error: error.message,
       })
     }
@@ -27,7 +27,9 @@ export default class AdminsController {
       const data = request.only(allowedFields) as Partial<AdminInfo>
 
       if (!info) {
-        throw new Error('Info not found')
+        return response.status(404).send({
+          error: 'Informaçoes do administrador nao encontradas',
+        })
       }
 
       info.merge(data)
@@ -35,7 +37,7 @@ export default class AdminsController {
 
       response.json(info)
     } catch (error) {
-      response.status(500).send({
+      return response.status(500).send({
         error: error.message,
       })
     }
@@ -49,11 +51,17 @@ export default class AdminsController {
         })
         .orderBy('id', 'desc')
 
-      if (!admins) throw new Error('No admins found')
+      if (!admins || admins.length === 0) {
+        return response.status(404).send({
+          error: 'Nenhum administrador encontrado',
+        })
+      }
 
       return admins
     } catch (error) {
-      return response.notFound(error.message)
+      return response.status(500).send({
+        error: error.message,
+      })
     }
   }
 }

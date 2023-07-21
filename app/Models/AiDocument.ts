@@ -76,23 +76,28 @@ export default class AiDocument extends compose(BaseModel, SoftDeletes) {
         content: { content: [] } as any,
       })
 
-      if (!document) throw new Error('Erro ao criar documento')
+      if (!document) {
+        return { error: 'Erro ao criar documento' }
+      }
 
       return document
     } catch (error) {
-      return error.message
+      return { error: error.message }
     }
   }
 
-  public static async getAiDocumentWith(field: string, value: any): Promise<AiDocument> {
+  public static async getAiDocumentWith(
+    field: string,
+    value: any
+  ): Promise<AiDocument | { error: string }> {
     try {
-      const document = await AiDocument.query().where(field, value).firstOrFail()
+      const document = await AiDocument.query().where(field, value).first()
 
-      if (!document) throw new Error('Documento não encontrado ou não disponível')
+      if (!document) return { error: 'Documento não encontrado ou não disponível' }
 
       return document
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 }

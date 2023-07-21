@@ -1,4 +1,5 @@
 import { NotificationContract } from '@ioc:Verful/Notification'
+import User from 'App/Models/User'
 
 export default class UserNotification implements NotificationContract {
   private titie: string
@@ -16,6 +17,7 @@ export default class UserNotification implements NotificationContract {
    * @param redirectUrl - The url to be redirected - optional
    */
   constructor(
+    user: User,
     title: string,
     message: string,
     context?: string,
@@ -27,6 +29,8 @@ export default class UserNotification implements NotificationContract {
     this.context = context
     this.icon = icon
     this.redirectUrl = redirectUrl
+
+    user!.notificationRefresh()
   }
 
   public via(_notifiable: any) {

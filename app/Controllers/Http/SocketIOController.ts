@@ -25,10 +25,13 @@ export default class SocketIOController {
 
   public static async wsBalanceRefresh(user: User) {
     const userUuid = user.uuid
+    await user.load('balance')
 
     const socket = userSockets[userUuid]
     if (socket) {
-      Ws.io.to(socket.id).emit('ch_balance_refresh', { message: 'refresh' })
+      Ws.io
+        .to(socket.id)
+        .emit('ch_balance_refresh', { message: 'refresh', balance: user.balance.currentBalance })
     }
   }
 
@@ -51,6 +54,30 @@ export default class SocketIOController {
     const socket = userSockets[userUuid]
     if (socket) {
       Ws.io.to(socket.id).emit('ch_checkout_refresh', { message: 'refresh' })
+    }
+  }
+
+  public static async wsInsufficientBalanceAlert(user: User) {
+    const userUuid = user.uuid
+
+    const socket = userSockets[userUuid]
+    if (socket) {
+      Ws.io.to(socket.id).emit('ch_insufficient_balance_alert', { message: 'alert' })
+    }
+  }
+
+  public static async wsMidjourneyImageGenerationStatus(
+    user: User,
+    uri: string,
+    progress?: string
+  ) {
+    const userUuid = user.uuid
+
+    const socket = userSockets[userUuid]
+    if (socket) {
+      Ws.io
+        .to(socket.id)
+        .emit('ch_midjourney_image_generation_status', { message: 'refresh', uri, progress })
     }
   }
 }
