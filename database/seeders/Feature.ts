@@ -73,7 +73,7 @@ export default class extends BaseSeeder {
         name: 'Post de Instagram - Texto',
         suitness: 'language-generation',
         behavior: JSON.parse(
-          '{"stream":false,"messages":[{"role":"system","content":"Você é um especialista em marketing"}],"logit_bias":{},"temperature":0.8,"prompt_context":"Crie um post para Instagram a partir da seguinte sugestão. Sugestão: ","presence_penalty":0,"prompt_image":"Sugira uma frase para gerar uma imagem para esta postagem. A frase deve ser detalhista quanto aos elementos da imagem, como iluminação, cores, ambiente e tipo de ilustração que será utilizado, ele deve ser curto. Não seja vago, não seja emotivo, faça uma síntese fria e objetiva. Evite emojis. Evite usar o nome da empresa. Evite pedir textos. Evite conceitos abstratos.","frequency_penalty":0}'
+          '{"stream":false,"messages":[{"role":"system","content":"Você é um especialista em marketing"}],"logit_bias":{},"temperature":0.8,"prompt_image":"Sugira uma frase para gerar uma imagem para esta postagem. A frase deve ser detalhista quanto aos elementos da imagem, como iluminação, cores, ambiente e tipo de ilustração que será utilizado, ele deve ser curto. Não seja vago, não seja emotivo, faça uma síntese fria e objetiva. Evite emojis. Evite usar o nome da empresa. Evite pedir textos. Evite conceitos abstratos. Evite emojis. Evite enunciar a sua resposta com coisas como: imagem sugerida, imagem, etc, só responda de forma simples e curta.","prompt_context":"Crie um post para Instagram a partir da seguinte sugestão. Sugestão: ","presence_penalty":0,"frequency_penalty":0}'
         ),
       },
       {

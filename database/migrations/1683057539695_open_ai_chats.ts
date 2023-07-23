@@ -6,6 +6,7 @@ export default class extends BaseSchema {
   public async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id').primary()
+      table.charset('utf8mb4')
       table.uuid('uuid').notNullable().unique()
       table.integer('feature_id').notNullable().unsigned().references('id').inTable('features')
       table
