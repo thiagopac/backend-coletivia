@@ -8,9 +8,8 @@ import Feature from 'App/Models/Feature'
 import DocumentAnalysis from 'App/Models/DocumentAnalysis'
 
 const OPENAI_API_KEY = Env.get('OPENAI_API_KEY')
-// const OPENAI_API_CHAT_COMPLETIONS_URL = `${Env.get('OPENAI_API_CHAT_COMPLETIONS_URL')}`
-
-const TEST_MOCK_API_CHAT_COMPLETIONS_URL = `${Env.get('TEST_MOCK_API_CHAT_COMPLETIONS_URL')}`
+const OPENAI_API_CHAT_COMPLETIONS_URL = `${Env.get('OPENAI_API_CHAT_COMPLETIONS_URL')}`
+// const TEST_MOCK_API_CHAT_COMPLETIONS_URL = `${Env.get('TEST_MOCK_API_CHAT_COMPLETIONS_URL')}`
 
 export default class DocumentController {
   public async createDocumentAnalysis({ auth, request, response }: HttpContextContract) {
@@ -208,8 +207,8 @@ export default class DocumentController {
         },
       }
 
-      // const openaiResponse = await axios.post(OPENAI_API_CHAT_COMPLETIONS_URL, data, config)
-      const openaiResponse = await axios.post(TEST_MOCK_API_CHAT_COMPLETIONS_URL, data, config)
+      const openaiResponse = await axios.post(OPENAI_API_CHAT_COMPLETIONS_URL, data, config)
+      // const openaiResponse = await axios.post(TEST_MOCK_API_CHAT_COMPLETIONS_URL, data, config)
       const openaiResponseMessage = openaiResponse?.data?.choices?.[0]?.message ?? ''
 
       //trocar o objeto contextualizado pelo prompt real para guardar no histórico
@@ -287,8 +286,8 @@ export default class DocumentController {
         logit_bias: behavior.logit_bias,
       }
 
-      // const response = await axios.post(OPENAI_API_CHAT_COMPLETIONS_URL, data, config)
-      const response = await axios.post(TEST_MOCK_API_CHAT_COMPLETIONS_URL, data, config)
+      const response = await axios.post(OPENAI_API_CHAT_COMPLETIONS_URL, data, config)
+      // const response = await axios.post(TEST_MOCK_API_CHAT_COMPLETIONS_URL, data, config)
 
       const promptTokensCount = response?.data?.usage?.prompt_tokens
       const completionTokensCount = response?.data?.usage?.completion_tokens
