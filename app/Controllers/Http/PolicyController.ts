@@ -10,9 +10,13 @@ export default class PolicyController {
         .firstOrFail()
       return policy
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }
