@@ -39,7 +39,9 @@ export default class RechargeController {
     try {
       const options = RechargeOption.query().where('is_available', true)
       if (!options) {
-        throw new Error('Nenhuma opção de recarga encontrada')
+        response.status(404).send({
+          error: 'Nenhuma opção de recarga encontrada',
+        })
       }
 
       return options
@@ -58,7 +60,9 @@ export default class RechargeController {
     try {
       const recharge = await Recharge.getRechargeWith('uuid', params.uuid)
       if (!recharge) {
-        throw new Error('Recarga não encontrada')
+        response.status(404).send({
+          error: 'Recarga não encontrada',
+        })
       }
 
       const result = {

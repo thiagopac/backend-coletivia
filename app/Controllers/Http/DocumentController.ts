@@ -53,7 +53,9 @@ export default class DocumentController {
         .first()
 
       if (!aiDocument) {
-        throw new Error('Documento não encontrado')
+        return response.status(404).send({
+          error: 'Documento não encontrado',
+        })
       }
 
       const filename = file!.clientName

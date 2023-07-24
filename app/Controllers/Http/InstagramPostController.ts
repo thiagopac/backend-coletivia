@@ -77,7 +77,9 @@ export default class InstagramPostController {
         .first()
 
       if (!post) {
-        throw new Error('Post não encontrado')
+        return response.status(404).send({
+          error: 'Post não encontrado',
+        })
       }
 
       return post
