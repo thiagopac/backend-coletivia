@@ -25,9 +25,13 @@ export default class RechargeController {
 
       return recharges
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -35,16 +39,18 @@ export default class RechargeController {
     try {
       const options = RechargeOption.query().where('is_available', true)
       if (!options) {
-        response.status(404).send({
-          error: 'Nenhuma opção de recarga encontrada',
-        })
+        throw new Error('Nenhuma opção de recarga encontrada')
       }
 
       return options
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -52,9 +58,7 @@ export default class RechargeController {
     try {
       const recharge = await Recharge.getRechargeWith('uuid', params.uuid)
       if (!recharge) {
-        response.status(404).send({
-          error: 'Recarga não encontrada',
-        })
+        throw new Error('Recarga não encontrada')
       }
 
       const result = {
@@ -71,9 +75,13 @@ export default class RechargeController {
       }
       return result
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -83,9 +91,7 @@ export default class RechargeController {
 
       const rechargeOption = await RechargeOption.getRechargeOptionWith('uuid', option)
       if ('error' in rechargeOption) {
-        return response.status(404).send({
-          error: rechargeOption.error,
-        })
+        throw new Error(rechargeOption.error)
       }
 
       const user = await User.find(auth.use('user').user!.id)
@@ -112,9 +118,13 @@ export default class RechargeController {
 
       return recharge
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -183,9 +193,13 @@ export default class RechargeController {
 
       return response.ok({ message: 'Pedido de recarga atualizado' })
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }

@@ -42,9 +42,13 @@ export default class InstagramPostController {
 
       return posts
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -73,16 +77,18 @@ export default class InstagramPostController {
         .first()
 
       if (!post) {
-        return response.status(404).send({
-          error: 'Post não encontrado',
-        })
+        throw new Error('Post não encontrado')
       }
 
       return post
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -101,16 +107,18 @@ export default class InstagramPostController {
       const user = auth.use('user').user!
       const post = await InstagramPost.createInstagramPost(user)
       if ('error' in post) {
-        return response.status(404).send({
-          error: post.error,
-        })
+        throw new Error(post.error)
       }
 
       return post
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -121,19 +129,13 @@ export default class InstagramPostController {
    * @returns {Promise<InstagramPost>} - A promise that resolves to the updated InstagramPost object with generated text content.
    * @throws {Error} - If an error occurs during the generation process.
    */
-  public async generateTextPost({
-    auth,
-    request,
-    response,
-  }: HttpContextContract): Promise<InstagramPost | { error: string }> {
+  public async generateTextPost({ auth, request, response }: HttpContextContract) {
     try {
       const user = auth.use('user').user!
       const { post, prompt } = request.body()
       let instagramPost = await InstagramPost.query().where('uuid', post).first()
       if (!instagramPost) {
-        return response.status(404).send({
-          error: 'Post de Instagram não encontrado',
-        }) as any
+        throw new Error('Post de Instagram não encontrado')
       }
 
       let writing: any
@@ -142,17 +144,13 @@ export default class InstagramPostController {
         const featureText = await Feature.getFeatureWith('name', 'Post de Instagram - Texto')
 
         if ('error' in featureText) {
-          return {
-            error: featureText.error,
-          }
+          throw new Error(featureText.error)
         }
 
         const result = await AiWriting.createAiWriting(user, featureText)
 
         if ('error' in result) {
-          return {
-            error: result.error,
-          }
+          throw new Error(result.error)
         }
 
         writing = result
@@ -217,16 +215,18 @@ export default class InstagramPostController {
 
       instagramPost = await InstagramPost.query().preload('aiWriting').where('uuid', post).first()
       if (!instagramPost) {
-        return response.status(404).send({
-          error: 'Post de Instagram não encontrado',
-        }) as any
+        throw new Error('Post de Instagram não encontrado')
       }
 
       return instagramPost
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      }) as any
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -300,9 +300,13 @@ export default class InstagramPostController {
 
       return { imagine: openaiResponseMessage }
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -347,9 +351,7 @@ export default class InstagramPostController {
       const featureImage = await Feature.getFeatureWith('name', 'Post de Instagram - Imagem')
 
       if ('error' in featureImage) {
-        return {
-          error: featureImage.error,
-        }
+        throw new Error(featureImage.error)
       }
 
       const result = await MidjourneyImageGeneration.createImageGeneration(
@@ -379,9 +381,7 @@ export default class InstagramPostController {
     )
 
     if ('error' in midjourneyImageGeneration) {
-      return {
-        error: midjourneyImageGeneration.error,
-      }
+      throw new Error(midjourneyImageGeneration.error)
     }
 
     let imagesArr: any[] = midjourneyImageGeneration.images['images'] as any[]
@@ -423,9 +423,7 @@ export default class InstagramPostController {
     const instagramPostOrError = await InstagramPost.getInstagramPostWith('uuid', post)
 
     if ('error' in instagramPostOrError) {
-      return {
-        error: instagramPostOrError.error,
-      }
+      throw new Error(instagramPostOrError.error)
     }
 
     instagramPost = instagramPostOrError
@@ -460,9 +458,7 @@ export default class InstagramPostController {
       const feature = await Feature.getFeatureWith('name', 'Post de Instagram - Imagem')
 
       if ('error' in feature) {
-        return {
-          error: feature.error,
-        }
+        throw new Error(feature.error)
       }
 
       const imageGeneration = await MidjourneyImageGeneration.getImageGenerationWith(
@@ -471,9 +467,7 @@ export default class InstagramPostController {
       )
 
       if ('error' in imageGeneration) {
-        return {
-          error: imageGeneration.error,
-        }
+        throw new Error(imageGeneration.error)
       }
 
       const imagesObj: any = imageGeneration.images['images'][option] as any
@@ -524,9 +518,13 @@ export default class InstagramPostController {
 
       return instagramPost
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      }) as any
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // }) as any
     }
   }
 
@@ -570,9 +568,13 @@ export default class InstagramPostController {
       await post.delete()
       return response.noContent()
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 

@@ -34,9 +34,13 @@ export default class UnofficialMidjourneyImageController {
 
       return imageGenerations
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -58,16 +62,18 @@ export default class UnofficialMidjourneyImageController {
         .first()
 
       if (!generation) {
-        response.status(404).send({
-          error: 'Geração de imagem não encontrada',
-        })
+        throw new Error('Geração de imagem não encontrada')
       }
 
       return generation
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -103,9 +109,7 @@ export default class UnofficialMidjourneyImageController {
 
       const feature = await Feature.getFeatureWith('name', 'midjourney-free-image-generation')
       if ('error' in feature) {
-        return response.status(404).send({
-          error: feature.error,
-        })
+        throw new Error(feature.error)
       }
 
       const imageGeneration = await MidjourneyImageGeneration.createImageGeneration(
@@ -114,9 +118,7 @@ export default class UnofficialMidjourneyImageController {
         prompt
       )
       if ('error' in imageGeneration) {
-        return response.status(404).send({
-          error: imageGeneration.error,
-        })
+        throw new Error(imageGeneration.error)
       }
 
       let imagesArr: any[] = imageGeneration.images['images'] as any[]
@@ -171,9 +173,13 @@ export default class UnofficialMidjourneyImageController {
 
       return imageGeneration
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -192,9 +198,7 @@ export default class UnofficialMidjourneyImageController {
 
       const feature = await Feature.getFeatureWith('name', 'midjourney-free-image-generation')
       if ('error' in feature) {
-        return response.status(404).send({
-          error: feature.error,
-        })
+        throw new Error(feature.error)
       }
 
       const imageGeneration = await MidjourneyImageGeneration.getImageGenerationWith(
@@ -202,9 +206,7 @@ export default class UnofficialMidjourneyImageController {
         generation
       )
       if ('error' in imageGeneration) {
-        return response.status(404).send({
-          error: imageGeneration.error,
-        })
+        throw new Error(imageGeneration.error)
       }
 
       const imagesObj: any = imageGeneration.images['images'][option] as any
@@ -251,9 +253,13 @@ export default class UnofficialMidjourneyImageController {
 
       return response.status(200).json({ variation })
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -272,9 +278,7 @@ export default class UnofficialMidjourneyImageController {
 
       const feature = await Feature.getFeatureWith('name', 'midjourney-free-image-generation')
       if ('error' in feature) {
-        return response.status(404).send({
-          error: feature.error,
-        })
+        throw new Error(feature.error)
       }
 
       const imageGeneration = await MidjourneyImageGeneration.getImageGenerationWith(
@@ -282,9 +286,7 @@ export default class UnofficialMidjourneyImageController {
         generation
       )
       if ('error' in imageGeneration) {
-        return response.status(404).send({
-          error: imageGeneration.error,
-        })
+        throw new Error(imageGeneration.error)
       }
 
       const imagesObj: any = imageGeneration.images['images'][option] as any
@@ -332,9 +334,13 @@ export default class UnofficialMidjourneyImageController {
 
       return response.status(200).json({ upscale })
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -354,9 +360,13 @@ export default class UnofficialMidjourneyImageController {
 
       return fakeImageGeneration
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }

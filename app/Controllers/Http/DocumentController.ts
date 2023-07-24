@@ -19,16 +19,18 @@ export default class DocumentController {
 
       const document = await AiDocument.createDocument(user, extension)
       if ('error' in document) {
-        return response.status(404).send({
-          error: document.error,
-        })
+        throw new Error(document.error)
       }
 
       return document
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -51,9 +53,7 @@ export default class DocumentController {
         .first()
 
       if (!aiDocument) {
-        return response.status(404).send({
-          error: 'Documento não encontrado',
-        })
+        throw new Error('Documento não encontrado')
       }
 
       const filename = file!.clientName
@@ -63,9 +63,7 @@ export default class DocumentController {
 
       const extracted = await this.handleFileExtraction(extension, file!.tmpPath!)
       if ('error' in extracted) {
-        return response.status(404).send({
-          error: extracted.error,
-        })
+        throw new Error(extracted.error)
       }
 
       aiDocument.content = JSON.stringify({ raw: extracted[0] }) as any
@@ -73,9 +71,13 @@ export default class DocumentController {
 
       return aiDocument
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -128,9 +130,13 @@ export default class DocumentController {
 
       return documents
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -168,9 +174,13 @@ export default class DocumentController {
 
       return modifiedDocument
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -196,9 +206,13 @@ export default class DocumentController {
       await document.delete()
       return response.noContent()
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }
