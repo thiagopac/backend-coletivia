@@ -26,17 +26,19 @@ export default class ChatController {
 
       const feature = await Feature.getFeatureWith('name', 'free-chat')
       if ('error' in feature) {
-        return response.status(404).send({
-          error: feature.error,
-        })
+        throw new Error(feature.error)
       }
 
       const chat = await OpenAiChat.createChat(user, feature)
       return chat
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -46,17 +48,19 @@ export default class ChatController {
 
       const feature = await Feature.getFeatureWith('name', 'legal-to-informal')
       if ('error' in feature) {
-        return response.status(404).send({
-          error: feature.error,
-        })
+        throw new Error(feature.error)
       }
 
       const chat = await OpenAiChat.createChat(user, feature)
       return chat
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -66,17 +70,19 @@ export default class ChatController {
 
       const feature = await Feature.getFeatureWith('name', 'informal-to-formal')
       if ('error' in feature) {
-        return response.status(404).send({
-          error: feature.error,
-        })
+        throw new Error(feature.error)
       }
 
       const chat = await OpenAiChat.createChat(user, feature)
       return chat
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -94,9 +100,13 @@ export default class ChatController {
 
       return chats
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -108,9 +118,7 @@ export default class ChatController {
 
       const openAiChat = await OpenAiChat.getOpenAiChatWithUuid(chat)
       if ('error' in openAiChat) {
-        return response.status(404).send({
-          error: openAiChat.error,
-        })
+        throw new Error(openAiChat.error)
       }
 
       const behavior: any = openAiChat.behavior
@@ -149,8 +157,8 @@ export default class ChatController {
         logit_bias: behavior.logit_bias,
       }
 
-      console.log('prompt body: ', data.messages)
-      console.log('prompt tokens: ', OpenAiUtils.countTokens(JSON.stringify(data.messages).trim()))
+      // console.log('prompt body: ', data.messages)
+      // console.log('prompt tokens: ', OpenAiUtils.countTokens(JSON.stringify(data.messages).trim()))
 
       const config = {
         headers: {
@@ -206,9 +214,13 @@ export default class ChatController {
       openAiChat.save()
       return { result: openaiResponseMessage }
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -221,9 +233,7 @@ export default class ChatController {
 
       const openAiChat = await OpenAiChat.getOpenAiChatWithUuid(chat)
       if ('error' in openAiChat) {
-        return response.status(404).send({
-          error: openAiChat.error,
-        })
+        throw new Error(openAiChat.error)
       }
 
       const behavior: any = openAiChat.behavior
@@ -338,9 +348,13 @@ export default class ChatController {
         response.response.end()
       })
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -354,16 +368,18 @@ export default class ChatController {
         .first()
 
       if (!chat) {
-        return response.status(404).send({
-          error: 'Conversa não encontrada',
-        })
+        throw new Error('Conversa não encontrada')
       }
 
       return chat
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -435,9 +451,7 @@ export default class ChatController {
         .first()
 
       if (!chat) {
-        return response.status(404).send({
-          error: 'Conversa não encontrada',
-        })
+        throw new Error('Conversa não encontrada')
       }
 
       chat.title = request.input('title')
@@ -445,9 +459,13 @@ export default class ChatController {
 
       return chat
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -460,16 +478,18 @@ export default class ChatController {
         .first()
 
       if (!chat) {
-        return response.status(404).send({
-          error: 'Conversa não encontrada',
-        })
+        throw new Error('Conversa não encontrada')
       }
 
       return chat
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -482,17 +502,19 @@ export default class ChatController {
         .first()
 
       if (!chat) {
-        return response.status(404).send({
-          error: 'Conversa não encontrada',
-        })
+        throw new Error('Conversa não encontrada')
       }
 
       await chat.delete()
       return response.noContent()
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }

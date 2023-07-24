@@ -7,16 +7,18 @@ export default class BalanceController {
       await user?.load('balance')
 
       if (!user?.balance) {
-        return response.notFound({
-          error: 'Saldo não encontrado para o usuário',
-        })
+        throw new Error('Saldo não encontrado para o usuário')
       }
 
       return user.balance
     } catch (error) {
-      return response.status(500).send({
-        error: 'Erro ao recuperar o saldo do usuário',
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }
