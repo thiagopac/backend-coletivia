@@ -17,18 +17,18 @@ export default class DocumentController {
       const user = auth.use('user').user!
       const { document, feature } = request.body()
 
+      if (!document || !feature) {
+        throw new Error('Parâmetros inválidos')
+      }
+
       const aiFeature = await Feature.getFeatureWith('uuid', feature)
       if ('error' in aiFeature) {
-        return response.status(404).send({
-          error: aiFeature.error,
-        })
+        throw new Error(aiFeature.error)
       }
 
       const aiDocument = await AiDocument.getAiDocumentWith('uuid', document)
       if ('error' in aiDocument) {
-        return response.status(404).send({
-          error: aiDocument.error,
-        })
+        throw new Error(aiDocument.error)
       }
 
       const documentAnalysis = await DocumentAnalysis.createDocumentAnalysis(
@@ -37,20 +37,16 @@ export default class DocumentController {
         aiDocument
       )
       if ('error' in documentAnalysis) {
-        return response.status(404).send({
-          error: documentAnalysis.error,
-        })
+        throw new Error(documentAnalysis.error)
       }
 
       const analysis = await DocumentAnalysis.getDocumentAnalysisWith('id', documentAnalysis.id)
       if ('error' in analysis) {
-        return response.status(404).send({
-          error: analysis.error,
-        })
+        throw new Error(analysis.error)
       }
 
       const behavior: any = analysis.behavior
-      const contextLengthInChars = aiFeature.model.contextLength * 4 - 2000
+      const contextLengthInChars = aiFeature.model.contextLength * 2 - 3000
 
       const content = aiDocument.content
       const parts = this.splitTextIntoParts(content['raw'], contextLengthInChars)
@@ -71,7 +67,7 @@ export default class DocumentController {
 
       const synthesis = await this.synthesizeAnalysis(contentArr, analysis, user)
       contentArr.push({
-        stamp: 'SINTESE',
+        stamp: 'RESUMO',
         analysis: synthesis.analyzed,
       })
 
@@ -80,9 +76,13 @@ export default class DocumentController {
 
       return analysis
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -155,9 +155,13 @@ export default class DocumentController {
 
       return documents
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -176,9 +180,7 @@ export default class DocumentController {
 
       const documentAnalysis = await DocumentAnalysis.getDocumentAnalysisWith('uuid', document)
       if ('error' in documentAnalysis) {
-        return response.status(404).send({
-          error: documentAnalysis.error,
-        })
+        throw new Error(documentAnalysis.error)
       }
       const behavior: any = documentAnalysis.behavior
 
@@ -245,9 +247,13 @@ export default class DocumentController {
       documentAnalysis.save()
       return { result: openaiResponseMessage }
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -367,16 +373,18 @@ export default class DocumentController {
         .first()
 
       if (!analysis) {
-        return response.status(404).send({
-          error: 'Análise de documento não encontrada',
-        })
+        throw new Error('Análise de documento não encontrada')
       }
 
       return analysis
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -396,17 +404,19 @@ export default class DocumentController {
         .first()
 
       if (!analysis) {
-        return response.status(404).send({
-          error: 'Análise de documento não encontrada',
-        })
+        throw new Error('Análise de documento não encontrada')
       }
 
       await analysis.delete()
       return response.noContent()
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }

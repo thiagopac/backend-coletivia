@@ -111,8 +111,7 @@ export default class Feature extends compose(BaseModel, SoftDeletes) {
       const pricing = await Pricing.latestPriceForModelUuid(feature.model.uuid)
 
       if ('error' in pricing) {
-        // Se pricing for um objeto de erro, retornar o objeto de erro
-        return pricing
+        return { error: pricing.error }
       }
 
       feature.model.pricing = pricing
