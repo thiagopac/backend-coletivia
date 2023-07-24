@@ -7,16 +7,18 @@ export default class AiModelController {
       const aiModels = await AiModel.query().where('is_available', true)
 
       if (!aiModels || aiModels.length === 0) {
-        return response.status(404).send({
-          error: 'Nenhum modelo de IA encontrado',
-        })
+        throw new Error('Nenhum modelo de IA encontrado')
       }
 
       return aiModels
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -27,16 +29,18 @@ export default class AiModelController {
         .andWhere('type', params.type)
 
       if (!aiModels || aiModels.length === 0) {
-        return response.status(404).send({
-          error: 'Nenhum modelo de IA encontrado para o tipo especificado',
-        })
+        throw new Error('Nenhum modelo de IA encontrado para o tipo especificado')
       }
 
       return aiModels
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }

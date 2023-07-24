@@ -10,7 +10,6 @@ export default class AuthController {
       const token = await auth.use('user').attempt(email, password, { expiresIn: '365days' })
       return token
     } catch (error) {
-      console.error('error: ', error)
       return response.status(401).send({
         error: 'Credenciais inválidas',
       })

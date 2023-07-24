@@ -130,7 +130,7 @@ export default class DocumentAnalysis extends compose(BaseModel, SoftDeletes) {
       const analysis = await DocumentAnalysis.query()
         .preload('feature', (query) => query.preload('model'))
         .where(field, value)
-        .firstOrFail()
+        .first()
 
       if (!analysis) {
         return { error: 'Análise de documento não encontrada ou não disponível' }
@@ -139,8 +139,7 @@ export default class DocumentAnalysis extends compose(BaseModel, SoftDeletes) {
       const pricing = await Pricing.latestPriceForModelUuid(analysis.feature.model.uuid)
 
       if ('error' in pricing) {
-        // Se pricing for um objeto de erro, retornar o objeto de erro
-        return pricing
+        return { error: pricing.error }
       }
 
       analysis.feature.model.pricing = pricing

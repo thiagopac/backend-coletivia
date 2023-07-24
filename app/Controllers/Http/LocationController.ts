@@ -8,9 +8,13 @@ export default class LocationController {
       const states = await State.query().where('is_available', true).orderBy('name', 'asc')
       return states
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -24,16 +28,18 @@ export default class LocationController {
         .orderBy('name', 'asc')
 
       if (cities.length === 0) {
-        return response.status(404).send({
-          error: 'Nenhuma cidade encontrada para o estado fornecido.',
-        })
+        throw new Error('Nenhuma cidade encontrada para o estado fornecido.')
       }
 
       return cities
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }
