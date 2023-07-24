@@ -15,9 +15,19 @@
 
 import Logger from '@ioc:Adonis/Core/Logger'
 import HttpExceptionHandler from '@ioc:Adonis/Core/HttpExceptionHandler'
+import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import Env from '@ioc:Adonis/Core/Env'
 
 export default class ExceptionHandler extends HttpExceptionHandler {
   constructor() {
     super(Logger)
+  }
+
+  public async handle(error: any, ctx: HttpContextContract) {
+    if (error.stack !== undefined && Env.get('NODE_ENV') === 'production') {
+      delete error.stack
+    }
+
+    return super.handle(error, ctx)
   }
 }

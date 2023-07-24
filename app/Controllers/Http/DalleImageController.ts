@@ -20,16 +20,18 @@ export default class DalleImageController {
         .orderBy('id', 'desc')
 
       if (!imageGenerations || imageGenerations.length === 0) {
-        return response.status(404).send({
-          error: 'Nenhuma imagem encontrada',
-        })
+        throw new Error('Nenhuma imagem encontrada')
       }
 
       return imageGenerations
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -47,9 +49,7 @@ export default class DalleImageController {
 
       const feature = await Feature.getFeatureWith('name', 'dalle-free-image-generation')
       if ('error' in feature) {
-        return response.status(404).send({
-          error: feature.error,
-        })
+        throw new Error(feature.error)
       }
 
       const imageGeneration = await DalleAiImageGeneration.createImageGeneration(
@@ -59,9 +59,7 @@ export default class DalleImageController {
         prompt
       )
       if ('error' in imageGeneration) {
-        return response.status(404).send({
-          error: imageGeneration.error,
-        })
+        throw new Error(imageGeneration.error)
       }
 
       const data = {
@@ -101,9 +99,13 @@ export default class DalleImageController {
       imageGeneration.save()
       return imageGeneration
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -121,9 +123,13 @@ export default class DalleImageController {
 
       return fakeImageGeneration
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }

@@ -34,9 +34,13 @@ export default class RechargeController {
         }
       }
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -48,9 +52,13 @@ export default class RechargeController {
       const notification = await user?.markNotificationAsRead(id)
       return notification
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -62,9 +70,13 @@ export default class RechargeController {
       const notification = await user?.markNotificationAsUnread(id)
       return notification
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -75,9 +87,13 @@ export default class RechargeController {
       const notifications = await user?.markAllNotificationsAsRead()
       return notifications
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }

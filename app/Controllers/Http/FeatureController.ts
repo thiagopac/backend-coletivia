@@ -7,7 +7,9 @@ export default class FeatureController {
     try {
       return await Feature.query().where('suitness', 'summarization')
     } catch (error) {
-      return response.notFound(error.message)
+      response.status(500).send({
+        error: error.message,
+      })
     }
   }
 
@@ -24,9 +26,7 @@ export default class FeatureController {
         .first()
 
       if (!aiDocument) {
-        return response.status(404).send({
-          error: 'Documento não encontrado',
-        })
+        throw new Error('Documento não encontrado')
       }
 
       const features = await Feature.query()
@@ -39,16 +39,18 @@ export default class FeatureController {
         .where('suitness', 'summarization')
 
       if (!features) {
-        return response.status(404).send({
-          error: 'Funcionalidade não encontrada',
-        })
+        throw new Error('Funcionalidade não encontrada')
       }
 
       return features
     } catch (error) {
-      return response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }
