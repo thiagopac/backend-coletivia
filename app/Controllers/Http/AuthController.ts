@@ -1,6 +1,8 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import User from 'App/Models/User'
 import UserInfo from 'App/Models/UserInfo'
+import Env from '@ioc:Adonis/Core/Env'
+import UserBalance from 'App/Models/UserBalance'
 
 export default class AuthController {
   public async login({ auth, request, response }: HttpContextContract) {
@@ -56,6 +58,13 @@ export default class AuthController {
       await user.load('info')
       await user.info.load('city')
 
+      const createBalance = {
+        user_id: user.id,
+        currentBalance: 0,
+      }
+      const balance = await UserBalance.create(createBalance)
+      await balance.related('user').associate(user)
+
       response.json(user)
     } catch (error) {
       console.error(error)
@@ -99,6 +108,8 @@ export default class AuthController {
     if (user) {
       return response.status(200).send({
         exists: true,
+        social_login: user.socialLogin,
+        social_service: user.socialService,
       })
     } else {
       return response.status(200).send({
@@ -144,21 +155,37 @@ export default class AuthController {
       {
         email: googleUser.email!,
         socialService: 'Google',
+        socialLogin: true,
       }
     )
+
+    user.socialService = 'Google'
     user.socialLogin = true
     await user.save()
 
-    const createInfo = {
-      first_name: googleUser.original.given_name,
-      last_name: googleUser.original.family_name,
-      user_id: user.id,
-      phone: undefined,
-      city_id: undefined,
+    //create user info only if not exists
+    if (!user.info) {
+      const createInfo = {
+        first_name: googleUser.original.given_name,
+        last_name: googleUser.original.family_name,
+        user_id: user.id,
+        phone: undefined,
+        city_id: undefined,
+      }
+
+      const info = await UserInfo.create(createInfo)
+      await info.related('user').associate(user)
     }
 
-    const info = await UserInfo.create(createInfo)
-    await info.related('user').associate(user)
+    if (!user.balance) {
+      const createBalance = {
+        user_id: user.id,
+        currentBalance: 0,
+      }
+
+      const balance = await UserBalance.create(createBalance)
+      await balance.related('user').associate(user)
+    }
 
     await user.load('info')
 
@@ -166,8 +193,15 @@ export default class AuthController {
       expiresIn: '365days',
     })
 
+    response.cookie(String(Env.get('API_TOKEN_COOKIE_NAME')), oat.token, {
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: 'none',
+      secure: true,
+      httpOnly: true,
+    })
+
     await auth.use('user').login(user)
 
-    return response.ok(user)
+    return response.ok(oat)
   }
 }
