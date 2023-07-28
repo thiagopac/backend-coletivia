@@ -26,7 +26,8 @@
     "@adonisjs/auth",
     "adonis-lucid-soft-deletes",
     "@verful/notifications",
-    "@adonisjs/mail"
+    "@adonisjs/mail",
+    "@adonisjs/ally"
   ],
   "aceProviders": [
     "@adonisjs/repl"
