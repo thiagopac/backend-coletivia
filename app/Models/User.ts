@@ -41,10 +41,16 @@ export default class User extends compose(BaseModel, Notifiable('notifications')
   public email: string
 
   @column({ serializeAs: null })
-  public password: string
+  public password?: string
 
   @column({ serializeAs: null })
   public rememberMeToken?: string
+
+  @column()
+  public socialLogin?: boolean
+
+  @column()
+  public socialService?: string
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
@@ -94,8 +100,8 @@ export default class User extends compose(BaseModel, Notifiable('notifications')
 
   @beforeSave()
   public static async hashPassword(user: User) {
-    if (user.$dirty.password) {
-      user.password = await Hash.make(user.password)
+    if (user.$dirty.password && user.password !== undefined) {
+      user.password = await Hash.make(user.password as string)
     }
   }
 
