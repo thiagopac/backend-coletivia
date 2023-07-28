@@ -46,10 +46,8 @@ export default class AuthController {
         first_name: request.input('first_name'),
         last_name: request.input('last_name'),
         user_id: user.id,
-        phone: request.input('phone'),
-        registration_type: request.input('registration_type'),
-        cpf_cnpj: request.input('cpf_cnpj'),
-        city_id: 1991, // forçando cidade ao cadastrar ser Belo Horizonte - MG request.input('city_id')
+        phone: undefined,
+        city_id: undefined, // forçando cidade ao cadastrar ser Belo Horizonte - MG request.input('city_id')
       }
 
       const info = await UserInfo.create(createInfo)
@@ -65,5 +63,111 @@ export default class AuthController {
         error: 'Erro inesperado ao criar o usuário',
       })
     }
+  }
+
+  public async registerWihSocialLogin({ request, response }: HttpContextContract) {
+    try {
+      const user = await User.create(request.only(['email', 'social_service']))
+      user.socialLogin = true
+      await user.save()
+
+      const createInfo = {
+        first_name: request.input('first_name'),
+        last_name: request.input('last_name'),
+        user_id: user.id,
+        phone: undefined,
+        city_id: undefined,
+      }
+
+      const info = await UserInfo.create(createInfo)
+      await info.related('user').associate(user)
+
+      await user.load('info')
+      await user.info.load('city')
+
+      response.json(user)
+    } catch (error) {
+      console.error(error)
+      response.status(500).send({
+        error: 'Erro inesperado ao criar o usuário',
+      })
+    }
+  }
+
+  public async userExists({ request, response }: HttpContextContract) {
+    const user = await User.findBy('email', request.input('email'))
+    if (user) {
+      return response.status(200).send({
+        exists: true,
+      })
+    } else {
+      return response.status(200).send({
+        exists: false,
+      })
+    }
+  }
+
+  public async redirect({ auth, ally, response }: HttpContextContract) {
+    if (await auth.check()) {
+      return response.notAcceptable()
+    }
+
+    return response.send(await ally.use('google').stateless().redirectUrl())
+  }
+
+  public async callback({ ally, auth, response }: HttpContextContract) {
+    if (await auth.check()) {
+      return response.notAcceptable()
+    }
+
+    const google = ally.use('google').stateless()
+
+    if (google.accessDenied()) {
+      return 'Login social cancelado pelo usuário'
+    }
+
+    if (google.stateMisMatch()) {
+      return 'A requisição expirou. Recarregue a página e tente novamente.'
+    }
+
+    if (google.hasError()) {
+      return google.getError()
+    }
+
+    const { token } = await google.accessToken()
+    const googleUser = await google.userFromToken(token)
+
+    const user = await User.firstOrCreate(
+      {
+        email: googleUser.email!,
+      },
+      {
+        email: googleUser.email!,
+        socialService: 'Google',
+      }
+    )
+    user.socialLogin = true
+    await user.save()
+
+    const createInfo = {
+      first_name: googleUser.original.given_name,
+      last_name: googleUser.original.family_name,
+      user_id: user.id,
+      phone: undefined,
+      city_id: undefined,
+    }
+
+    const info = await UserInfo.create(createInfo)
+    await info.related('user').associate(user)
+
+    await user.load('info')
+
+    const oat = await auth.use('user').login(user, {
+      expiresIn: '365days',
+    })
+
+    await auth.use('user').login(user)
+
+    return response.ok(user)
   }
 }

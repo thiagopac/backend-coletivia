@@ -25,7 +25,12 @@ Route.group(() => {
   Route.group(() => {
     Route.post('auth/register', 'AuthController.register')
     Route.post('auth/login', 'AuthController.login')
+    Route.post('auth/user-exists', 'AuthController.userExists')
     Route.post('admin-auth/login', 'AdminAuthController.login')
+
+    Route.get('/google/redirect', 'AuthController.redirect')
+
+    Route.get('/google/callback', 'AuthController.callback')
 
     Route.post('generative-text/fake-stream', 'GenerativeAITextController.fakeStream')
 
