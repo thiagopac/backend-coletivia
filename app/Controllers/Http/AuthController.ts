@@ -3,6 +3,8 @@ import User from 'App/Models/User'
 import UserInfo from 'App/Models/UserInfo'
 import Env from '@ioc:Adonis/Core/Env'
 import UserBalance from 'App/Models/UserBalance'
+import Hash from '@ioc:Adonis/Core/Hash'
+import Utils from '../../../Utils/Utils'
 
 export default class AuthController {
   public async login({ auth, request, response }: HttpContextContract) {
@@ -70,6 +72,34 @@ export default class AuthController {
       console.error(error)
       response.status(500).send({
         error: 'Erro inesperado ao criar o usuário',
+      })
+    }
+  }
+
+  public async forgotPassword({ request, response }: HttpContextContract) {
+    try {
+      const email = request.input('email')
+
+      const user = await User.findBy('email', email)
+      if (!user) {
+        return response.status(404).send({
+          error: 'Usuário não encontrado',
+        })
+      }
+
+      console.log('Utils.generateRandomPassword(): ', Utils.generateRandomPassword())
+
+      // const tempPassword = await Hash.make(Utils.generateRandomPassword() as string)
+      // user.password = tempPassword
+      // await user.save()
+
+      return response.send({
+        message: 'E-mail para redefinição de senha enviado.',
+      })
+    } catch (error) {
+      console.error(error)
+      response.status(500).send({
+        error: 'Erro inesperado ao redefinir a senha',
       })
     }
   }
