@@ -27,7 +27,8 @@
     "adonis-lucid-soft-deletes",
     "@verful/notifications",
     "@adonisjs/mail",
-    "@adonisjs/ally"
+    "@adonisjs/ally",
+    "@adonisjs/view"
   ],
   "aceProviders": [
     "@adonisjs/repl"
@@ -45,5 +46,11 @@
   },
   "testProviders": [
     "@japa/preset-adonis/TestsProvider"
+  ],
+  "metaFiles": [
+    {
+      "pattern": "resources/views/**/*.edge",
+      "reloadServer": false
+    }
   ]
 }
