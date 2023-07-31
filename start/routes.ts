@@ -23,10 +23,14 @@ import Route from '@ioc:Adonis/Core/Route'
 Route.group(() => {
   //non-authenticated routes
   Route.group(() => {
-    Route.post('auth/register', 'AuthController.register')
-    Route.post('auth/login', 'AuthController.login')
-    Route.post('auth/forgot-password', 'AuthController.forgotPassword')
-    Route.post('auth/user-exists', 'AuthController.userExists')
+    Route.group(() => {
+      Route.post('register', 'AuthController.register')
+      Route.post('login', 'AuthController.login')
+      Route.post('forgot-password', 'AuthController.forgotPassword')
+      Route.post('reset-password', 'AuthController.forgotPassword')
+      Route.post('user-exists', 'AuthController.userExists')
+    }).prefix('/auth')
+
     Route.post('admin-auth/login', 'AdminAuthController.login')
 
     Route.get('/google/redirect', 'AuthController.redirect')
@@ -48,6 +52,10 @@ Route.group(() => {
     Route.group(() => {
       Route.get('fetch-currency-rate-usd-brl', 'CurrencyRateController.fetchUsdBrl')
     }).prefix('/scheduled')
+
+    Route.group(() => {
+      Route.get('mail', 'TemplateViewController.simpleMail')
+    }).prefix('/views')
   })
 
   //user-authenticated routes

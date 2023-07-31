@@ -61,6 +61,7 @@
     "@adonisjs/lucid": "^18.3.0",
     "@adonisjs/mail": "^8.2.0",
     "@adonisjs/repl": "^3.1.11",
+    "@adonisjs/view": "^6.2.0",
     "@translate-tools/core": "^0.2.14",
     "@verful/notifications": "^2.0.3",
     "adonis-lucid-soft-deletes": "^1.4.3",
