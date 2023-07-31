@@ -3,8 +3,9 @@ import User from 'App/Models/User'
 import UserInfo from 'App/Models/UserInfo'
 import Env from '@ioc:Adonis/Core/Env'
 import UserBalance from 'App/Models/UserBalance'
-import Hash from '@ioc:Adonis/Core/Hash'
-import Utils from '../../../Utils/Utils'
+import PasswordReset from 'App/Models/PasswordReset'
+import MailController from 'App/Controllers/Http/MailController'
+import { DateTime } from 'luxon'
 
 export default class AuthController {
   public async login({ auth, request, response }: HttpContextContract) {
@@ -36,6 +37,7 @@ export default class AuthController {
 
       return user
     } catch (error) {
+      console.log('error: ', error)
       return response.status(401).send({
         error: 'Credenciais inválidas',
       })
@@ -87,14 +89,58 @@ export default class AuthController {
         })
       }
 
-      console.log('Utils.generateRandomPassword(): ', Utils.generateRandomPassword())
-
-      // const tempPassword = await Hash.make(Utils.generateRandomPassword() as string)
-      // user.password = tempPassword
-      // await user.save()
+      const passwordReset = await PasswordReset.create({ email: user.email })
+      await MailController.sendMailPasswordReset(user, passwordReset.token)
 
       return response.send({
         message: 'E-mail para redefinição de senha enviado.',
+      })
+    } catch (error) {
+      console.error(error)
+      response.status(500).send({
+        error: 'Erro inesperado ao redefinir a senha',
+      })
+    }
+  }
+
+  public async resetPasswordWithToken({ request, response }: HttpContextContract) {
+    try {
+      const email = request.input('email')
+      const token = request.input('token')
+      const password = request.input('password')
+
+      const passwordReset = await PasswordReset.query()
+        .where('email', email)
+        .where('token', token)
+        .first()
+
+      if (!passwordReset) {
+        throw new Error('Token e/ou e-mail inválidos')
+      }
+
+      // Assumindo que passwordReset.createdAt é um objeto DateTime válido
+      const currentTime = DateTime.now()
+
+      const tokenExpirationMinutes = 30
+      const tokenExpiration = passwordReset.createdAt.plus({ minutes: tokenExpirationMinutes })
+
+      if (currentTime > tokenExpiration) {
+        throw new Error('Token e/ou e-mail inválidos')
+      }
+
+      const user = await User.findBy('email', email)
+      if (!user) {
+        throw new Error('Usuário não encontrado')
+      }
+
+      user.password = password
+      user.save()
+
+      await MailController.sendMailNewPassword(user)
+      await passwordReset.delete()
+
+      return response.send({
+        message: 'Senha redefinida com sucesso.',
       })
     } catch (error) {
       console.error(error)
