@@ -1,0 +1,8 @@
+@include('emails/partials/header')
+<p>Olá, {{ user.firstName }}!</p>
+<p> Sua conta foi criada com sucesso. Clique no botão abaixo para confirmar o seu cadastro. </p>
+@!component('emails/components/button', {
+  label: 'Confirmar cadastro',
+  url: 'https://www.google.com'
+})
+@include('emails/partials/footer')
