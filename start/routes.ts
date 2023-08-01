@@ -27,7 +27,7 @@ Route.group(() => {
       Route.post('register', 'AuthController.register')
       Route.post('login', 'AuthController.login')
       Route.post('forgot-password', 'AuthController.forgotPassword')
-      Route.post('reset-password', 'AuthController.forgotPassword')
+      Route.post('reset-password', 'AuthController.resetPasswordWithToken')
       Route.post('user-exists', 'AuthController.userExists')
     }).prefix('/auth')
 
@@ -54,7 +54,7 @@ Route.group(() => {
     }).prefix('/scheduled')
 
     Route.group(() => {
-      Route.get('mail', 'TemplateViewController.simpleMail')
+      Route.get('mail', 'TemplateViewController.welcome')
     }).prefix('/views')
   })
 
