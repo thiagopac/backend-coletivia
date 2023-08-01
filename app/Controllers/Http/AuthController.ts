@@ -6,6 +6,7 @@ import UserBalance from 'App/Models/UserBalance'
 import PasswordReset from 'App/Models/PasswordReset'
 import MailController from 'App/Controllers/Http/MailController'
 import { DateTime } from 'luxon'
+import { AllyUserContract, Oauth1AccessToken, Oauth2AccessToken } from '@ioc:Adonis/Addons/Ally'
 
 export default class AuthController {
   public async login({ auth, request, response }: HttpContextContract) {
@@ -69,6 +70,8 @@ export default class AuthController {
       const balance = await UserBalance.create(createBalance)
       await balance.related('user').associate(user)
 
+      await MailController.sendMailWelcome(user)
+
       response.json(user)
     } catch (error) {
       console.error(error)
@@ -98,7 +101,7 @@ export default class AuthController {
     } catch (error) {
       console.error(error)
       response.status(500).send({
-        error: 'Erro inesperado ao redefinir a senha',
+        error: error.message,
       })
     }
   }
@@ -118,14 +121,15 @@ export default class AuthController {
         throw new Error('Token e/ou e-mail inválidos')
       }
 
-      // Assumindo que passwordReset.createdAt é um objeto DateTime válido
       const currentTime = DateTime.now()
 
       const tokenExpirationMinutes = 30
       const tokenExpiration = passwordReset.createdAt.plus({ minutes: tokenExpirationMinutes })
 
       if (currentTime > tokenExpiration) {
-        throw new Error('Token e/ou e-mail inválidos')
+        throw new Error(
+          'O tempo limite para redefinição de senha expirou. Inicie o processo novamente.'
+        )
       }
 
       const user = await User.findBy('email', email)
@@ -145,36 +149,7 @@ export default class AuthController {
     } catch (error) {
       console.error(error)
       response.status(500).send({
-        error: 'Erro inesperado ao redefinir a senha',
-      })
-    }
-  }
-
-  public async registerWihSocialLogin({ request, response }: HttpContextContract) {
-    try {
-      const user = await User.create(request.only(['email', 'social_service']))
-      user.socialLogin = true
-      await user.save()
-
-      const createInfo = {
-        first_name: request.input('first_name'),
-        last_name: request.input('last_name'),
-        user_id: user.id,
-        phone: undefined,
-        city_id: undefined,
-      }
-
-      const info = await UserInfo.create(createInfo)
-      await info.related('user').associate(user)
-
-      await user.load('info')
-      await user.info.load('city')
-
-      response.json(user)
-    } catch (error) {
-      console.error(error)
-      response.status(500).send({
-        error: 'Erro inesperado ao criar o usuário',
+        error: error.message,
       })
     }
   }
@@ -221,39 +196,66 @@ export default class AuthController {
       return google.getError()
     }
 
-    const { token } = await google.accessToken()
-    const googleUser = await google.userFromToken(token)
+    try {
+      const { token } = await google.accessToken()
+      const googleUser = await google.userFromToken(token)
 
-    const user = await User.firstOrCreate(
-      {
-        email: googleUser.email!,
-      },
-      {
-        email: googleUser.email!,
-        socialService: 'Google',
-        socialLogin: true,
+      let user = await User.findBy('email', googleUser.email!)
+
+      if (!user) {
+        user = await this.registerWihSocialLogin(googleUser, 'Google')
+      } else {
+        await user.load('info')
+        user.info.firstName = googleUser.original.given_name
+        user.info.lastName = googleUser.original.family_name
+        user.socialService = 'Google'
+        user.socialLogin = true
+        await user.save()
       }
-    )
 
-    user.socialService = 'Google'
-    user.socialLogin = true
-    await user.save()
+      const oat = await auth.use('user').login(user, {
+        expiresIn: '365days',
+      })
 
-    //create user info only if not exists
-    if (!user.info) {
+      response.cookie(String(Env.get('API_TOKEN_COOKIE_NAME')), oat.token, {
+        maxAge: 60 * 60 * 24 * 365,
+        sameSite: 'none',
+        secure: true,
+        httpOnly: true,
+      })
+
+      await auth.use('user').login(user)
+      return response.ok(oat)
+    } catch (error) {
+      console.error(error)
+      response.status(500).send({
+        error: 'Erro inesperado durante o processo de login',
+      })
+    }
+  }
+
+  public async registerWihSocialLogin(
+    socialUser: AllyUserContract<Oauth2AccessToken | Oauth1AccessToken>,
+    service: string
+  ): Promise<User> {
+    try {
+      const user = await User.create({
+        email: socialUser.email!,
+        socialService: service,
+        socialLogin: true,
+      })
+
       const createInfo = {
-        first_name: googleUser.original.given_name,
-        last_name: googleUser.original.family_name,
-        user_id: user.id,
+        firstName: socialUser.original.given_name,
+        lastName: socialUser.original.family_name,
+        userId: user.id,
         phone: undefined,
-        city_id: undefined,
+        cityId: undefined,
       }
 
       const info = await UserInfo.create(createInfo)
       await info.related('user').associate(user)
-    }
 
-    if (!user.balance) {
       const createBalance = {
         user_id: user.id,
         currentBalance: 0,
@@ -261,23 +263,13 @@ export default class AuthController {
 
       const balance = await UserBalance.create(createBalance)
       await balance.related('user').associate(user)
+
+      await MailController.sendMailWelcome(user)
+
+      return user
+    } catch (error) {
+      console.error(error)
+      throw new Error(error.message)
     }
-
-    await user.load('info')
-
-    const oat = await auth.use('user').login(user, {
-      expiresIn: '365days',
-    })
-
-    response.cookie(String(Env.get('API_TOKEN_COOKIE_NAME')), oat.token, {
-      maxAge: 60 * 60 * 24 * 365,
-      sameSite: 'none',
-      secure: true,
-      httpOnly: true,
-    })
-
-    await auth.use('user').login(user)
-
-    return response.ok(oat)
   }
 }

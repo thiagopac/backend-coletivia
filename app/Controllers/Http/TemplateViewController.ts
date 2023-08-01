@@ -11,12 +11,13 @@ const FRONTEND_BASE_URL = Env.get('FRONTEND_BASE_URL')
 View.mount('emails', Application.resourcesPath('views/emails'))
 
 export default class TestController {
-  public async confirmRegistration({}: HttpContextContract) {
+  public async welcome({}: HttpContextContract) {
     const user = await User.findOrFail(1)
     await user.load('info')
 
-    return View.render('emails::confirm-registration', {
+    return View.render('emails::welcome', {
       user: { firstName: user?.info.firstName },
+      url: `${FRONTEND_BASE_URL}/reset-password?email=${user.email}&token=${'123456'}`,
     })
   }
 
