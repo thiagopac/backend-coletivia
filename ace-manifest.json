@@ -539,6 +539,53 @@
           "description": "Drop all custom types (Postgres only)"
         }
       ]
+    },
+    "make:notification": {
+      "settings": {
+        "loadApp": true
+      },
+      "commandPath": "@verful/notifications/build/commands/MakeNotification",
+      "commandName": "make:notification",
+      "description": "Make a new Notification",
+      "args": [
+        {
+          "type": "string",
+          "propertyName": "name",
+          "name": "name",
+          "required": true,
+          "description": "Name of the notification class"
+        }
+      ],
+      "aliases": [],
+      "flags": []
+    },
+    "notifications:table": {
+      "settings": {
+        "loadApp": true
+      },
+      "commandPath": "@verful/notifications/build/commands/NotificationsTable",
+      "commandName": "notifications:table",
+      "description": "Create the notifications table",
+      "args": [],
+      "aliases": [],
+      "flags": []
+    },
+    "make:mailer": {
+      "settings": {},
+      "commandPath": "@adonisjs/mail/build/commands/MakeMailer",
+      "commandName": "make:mailer",
+      "description": "Make a new mailer class",
+      "args": [
+        {
+          "type": "string",
+          "propertyName": "name",
+          "name": "name",
+          "required": true,
+          "description": "Name of the mailer class"
+        }
+      ],
+      "aliases": [],
+      "flags": []
     }
   },
   "aliases": {}

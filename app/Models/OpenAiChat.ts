@@ -5,15 +5,16 @@ import {
   BelongsTo,
   belongsTo,
   beforeCreate,
-  hasMany,
-  HasMany,
+  afterCreate,
 } from '@ioc:Adonis/Lucid/Orm'
 import User from 'App/Models/User'
 import { v4 as uuidv4 } from 'uuid'
-import OpenAiChatMessage from 'App/Models/OpenAiChatMessage'
-import OpenAiModel from 'App/Models/OpenAiModel'
+import { SoftDeletes } from '@ioc:Adonis/Addons/LucidSoftDeletes'
+import { compose } from '@ioc:Adonis/Core/Helpers'
+import Feature from 'App/Models/Feature'
+import Pricing from 'App/Models/Pricing'
 
-export default class OpenAiChat extends BaseModel {
+export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   /*
   |--------------------------------------------------------------------------
   | Columns
@@ -27,13 +28,22 @@ export default class OpenAiChat extends BaseModel {
   public uuid: string
 
   @column({ serializeAs: null })
-  public openAiModelId: number
+  public featureId: number
 
   @column({ serializeAs: null })
   public userId: number
 
   @column()
+  public type: string
+
+  @column()
   public title: string
+
+  @column({ serializeAs: null })
+  public behavior: JSON
+
+  @column()
+  public messages: JSON
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
@@ -41,24 +51,22 @@ export default class OpenAiChat extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime
 
+  @column.dateTime({ serializeAs: null })
+  public deletedAt: DateTime | null
+
   /*
   |--------------------------------------------------------------------------
   | Relations
   |--------------------------------------------------------------------------
   */
 
-  /* :::::::::::::::::::: has many :::::::::::::::::::::: */
-
-  @hasMany(() => OpenAiChatMessage, { localKey: 'id' })
-  public messages: HasMany<typeof OpenAiChatMessage>
-
   /* :::::::::::::::::::: belongs to :::::::::::::::::::: */
 
   @belongsTo(() => User, { foreignKey: 'userId' })
   public user: BelongsTo<typeof User>
 
-  @belongsTo(() => OpenAiModel, { foreignKey: 'aiModelId' })
-  public model: BelongsTo<typeof OpenAiModel>
+  @belongsTo(() => Feature, { foreignKey: 'featureId' })
+  public feature: BelongsTo<typeof Feature>
 
   /*
   |--------------------------------------------------------------------------
@@ -69,5 +77,64 @@ export default class OpenAiChat extends BaseModel {
   @beforeCreate()
   public static generateUUID(chat: OpenAiChat) {
     chat.uuid = uuidv4()
+  }
+
+  @afterCreate()
+  public static changeMessagesDefault(chat: OpenAiChat) {
+    chat.messages = { messages: [] } as any
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Methods
+  |--------------------------------------------------------------------------
+  */
+
+  public static async createChat(
+    user: User,
+    feature: Feature
+  ): Promise<OpenAiChat | { error: string }> {
+    try {
+      const chat = await OpenAiChat.create({
+        userId: user.id,
+        featureId: feature.id,
+        title: 'Sem título',
+        behavior: feature.behavior,
+        messages: { messages: [] } as any,
+      })
+
+      if (!chat) {
+        return { error: 'Erro ao criar conversa' }
+      }
+
+      return chat
+    } catch (error) {
+      return { error: error.message }
+    }
+  }
+
+  public static async getOpenAiChatWithUuid(uuid: string): Promise<OpenAiChat | { error: string }> {
+    try {
+      const chat = await OpenAiChat.query()
+        .preload('feature', (query) => query.preload('model'))
+        .where('uuid', uuid)
+        .firstOrFail()
+
+      if (!chat) {
+        return { error: 'Chat não encontrado ou não disponível' }
+      }
+
+      const pricing = await Pricing.latestPriceForModelUuid(chat.feature.model.uuid)
+
+      if ('error' in pricing) {
+        return pricing
+      }
+
+      chat.feature.model.pricing = pricing
+
+      return chat
+    } catch (error) {
+      return { error: error.message }
+    }
   }
 }

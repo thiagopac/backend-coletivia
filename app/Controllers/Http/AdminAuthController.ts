@@ -8,7 +8,9 @@ export default class AdminAuthController {
       const token = await auth.use('admin').attempt(email, password, { expiresIn: '365days' })
       return token
     } catch (error) {
-      return response.unauthorized('Invalid credentials')
+      return response.status(401).send({
+        error: 'Credenciais inválidas',
+      })
     }
   }
 
@@ -26,7 +28,9 @@ export default class AdminAuthController {
       await user?.info.load('city')
       return user
     } catch (error) {
-      return response.unauthorized('Invalid credentials')
+      return response.status(401).send({
+        error: 'Credenciais inválidas',
+      })
     }
   }
 }

@@ -5,14 +5,10 @@ export default class extends BaseSchema {
 
   public async up() {
     this.schema.createTable(this.tableName, (table) => {
-      table.increments('id')
+      table.increments('id').primary()
+      table.charset('utf8mb4')
       table.uuid('uuid').notNullable().unique()
-      table
-        .integer('open_ai_model_id')
-        .notNullable()
-        .unsigned()
-        .references('id')
-        .inTable('open_ai_models')
+      table.integer('feature_id').notNullable().unsigned().references('id').inTable('features')
       table
         .integer('user_id')
         .notNullable()
@@ -20,8 +16,11 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('users')
         .onDelete('CASCADE')
-      table.string('title').nullable()
+      table.string('title').notNullable()
+      table.json('behavior').notNullable()
+      table.json('messages').notNullable()
       table.timestamps()
+      table.timestamp('deleted_at', { useTz: true }).nullable()
     })
   }
 
@@ -29,3 +28,4 @@ export default class extends BaseSchema {
     this.schema.dropTable(this.tableName)
   }
 }
+// manter tipos de chat em string até que seja possível criar um enum

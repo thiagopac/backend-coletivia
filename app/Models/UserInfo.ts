@@ -32,6 +32,12 @@ export default class UserInfo extends BaseModel {
   @column()
   public phone?: string
 
+  @column()
+  public registrationType?: string
+
+  @column()
+  public cpfCnpj?: string
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
 

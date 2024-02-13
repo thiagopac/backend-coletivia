@@ -16,6 +16,10 @@ export default class UserSeeder extends BaseSeeder {
         email: 'rodolfoiannazzo@gmail.com',
         password: 'rodolfo',
       },
+      {
+        email: 'contato@crossworkti.com.br',
+        password: 'crossworkti',
+      },
     ])
   }
 }

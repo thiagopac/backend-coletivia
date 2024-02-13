@@ -55,16 +55,28 @@
     "youch-terminal": "^2.2.0"
   },
   "dependencies": {
+    "@adonisjs/ally": "^4.1.5",
     "@adonisjs/auth": "^8.2.3",
     "@adonisjs/core": "^5.9.0",
     "@adonisjs/lucid": "^18.3.0",
+    "@adonisjs/mail": "^8.2.0",
     "@adonisjs/repl": "^3.1.11",
+    "@adonisjs/view": "^6.2.0",
+    "@translate-tools/core": "^0.2.14",
+    "@verful/notifications": "^2.0.3",
+    "adonis-lucid-soft-deletes": "^1.4.3",
     "axios": "^1.4.0",
+    "currency-converter-lt": "^2.0.0-beta.0",
+    "gpt-tokenizer": "^1.0.4",
     "luxon": "^3.3.0",
+    "mammoth": "^1.6.0",
+    "midjourney": "^3.1.88",
     "mysql2": "^3.2.4",
+    "pdf-parse": "^1.1.1",
     "proxy-addr": "^2.0.7",
     "reflect-metadata": "^0.1.13",
     "server-events-nodejs": "^0.2.1",
+    "socket.io": "^4.7.1",
     "source-map-support": "^0.5.21",
     "uuid": "^9.0.0"
   }
