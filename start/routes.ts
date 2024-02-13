@@ -122,6 +122,10 @@ Route.group(() => {
       Route.group(() => {
         Route.post('analyze', 'DocumentAnalysisController.createDocumentAnalysis')
         Route.get('list', 'DocumentAnalysisController.list')
+        Route.get(
+          'list-for-document/:document',
+          'DocumentAnalysisController.listAnalysesForDocument'
+        )
         Route.get(':uuid', 'DocumentAnalysisController.retrieveDocumentAnalysis')
         Route.delete(':uuid/delete', 'DocumentAnalysisController.deleteDocumentAnalysis')
       }).prefix('analysis')

@@ -12,6 +12,32 @@ const OPENAI_API_CHAT_COMPLETIONS_URL = `${Env.get('OPENAI_API_CHAT_COMPLETIONS_
 // const TEST_MOCK_API_CHAT_COMPLETIONS_URL = `${Env.get('TEST_MOCK_API_CHAT_COMPLETIONS_URL')}`
 
 export default class DocumentController {
+  //list analyses
+  public async listAnalysesForDocument({ auth, params }: HttpContextContract) {
+    try {
+      const user = auth.use('user').user
+      const aiDocument = await AiDocument.query()
+        .select(['id'])
+        .where('uuid', params.document)
+        .first()
+
+      if (!aiDocument) {
+        throw new Error('Documento não encontrado')
+      }
+
+      const analyses = await DocumentAnalysis.query()
+        .select(['uuid', 'feature_id', 'created_at', 'updated_at'])
+        .preload('feature')
+        .where('user_id', user!.id)
+        .andWhere('ai_document_id', aiDocument.id)
+        .orderBy('id', 'desc')
+
+      return analyses
+    } catch (error) {
+      throw new Error(error)
+    }
+  }
+
   public async createDocumentAnalysis({ auth, request, response }: HttpContextContract) {
     try {
       const user = auth.use('user').user!

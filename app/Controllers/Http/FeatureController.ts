@@ -13,11 +13,7 @@ export default class FeatureController {
     }
   }
 
-  public async listFeaturesForDocumentWithAnalyses({
-    auth,
-    params,
-    response,
-  }: HttpContextContract) {
+  public async listFeaturesForDocumentWithAnalyses({ auth, params }: HttpContextContract) {
     try {
       const user = auth.use('user').user
       const aiDocument = await AiDocument.query()
@@ -45,12 +41,6 @@ export default class FeatureController {
       return features
     } catch (error) {
       throw new Error(error)
-      // return response.status(500).send({
-      //   error: {
-      //     message: error.message,
-      //     stack: error.stack,
-      //   },
-      // })
     }
   }
 }
