@@ -24,10 +24,27 @@ export default class Recharge extends BaseModel {
   public rechargeOptionId: number
 
   @column()
+  public value: number
+
+  @column()
+  public transaction_code: string
+
+  @column()
   public status: string
 
-  @column({ serializeAs: null })
-  public additionalData: JSON
+  @column({
+    serialize: (value?: any) => {
+      return { qr_code: value?.pixCopiaECola }
+    },
+  })
+  public chargeData: JSON
+
+  @column({
+    serialize: (value?: any) => {
+      return { paid_at: value?.pix[0]?.horario }
+    },
+  })
+  public paymentData: JSON
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
@@ -71,21 +88,25 @@ export default class Recharge extends BaseModel {
   public static async createRecharge(
     user: User,
     rechargeOption: RechargeOption,
-    additionalData?: any
-  ): Promise<Recharge> {
+    chargeData?: any
+  ): Promise<Recharge | { error: string }> {
     try {
       const recharge = await Recharge.create({
         userId: user.id,
         rechargeOptionId: rechargeOption.id,
-        status: 'pending',
-        additionalData: additionalData,
+        value: rechargeOption.creditedValue,
+        status: 'unpaid',
+        transaction_code: chargeData?.txid,
+        chargeData: chargeData,
       })
 
-      if (!recharge) throw new Error('Erro ao ao criar registro de recarga')
+      if (!recharge) {
+        return { error: 'Erro ao criar registro de recarga' }
+      }
 
       return recharge
     } catch (error) {
-      return error.message
+      return { error: error.message }
     }
   }
 
@@ -96,11 +117,14 @@ export default class Recharge extends BaseModel {
         .preload('rechargeOption')
         .where(field, value)
         .firstOrFail()
-      if (!recharge) throw new Error('Recarga não encontrada')
+
+      if (!recharge) {
+        throw 'Recarga não encontrada'
+      }
 
       return recharge
     } catch (error) {
-      throw new Error(error)
+      throw error
     }
   }
 }

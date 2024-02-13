@@ -7,21 +7,24 @@ export default class FeatureController {
     try {
       return await Feature.query().where('suitness', 'summarization')
     } catch (error) {
-      return response.notFound(error.message)
+      response.status(500).send({
+        error: error.message,
+      })
     }
   }
 
-  public async listFeaturesForDocumentWithAnalyses({
-    auth,
-    params,
-    response,
-  }: HttpContextContract) {
+  public async listFeaturesForDocumentWithAnalyses({ auth, params }: HttpContextContract) {
     try {
       const user = auth.use('user').user
       const aiDocument = await AiDocument.query()
         .select(['id'])
         .where('uuid', params.document)
-        .firstOrFail()
+        .first()
+
+      if (!aiDocument) {
+        throw new Error('Documento não encontrado')
+      }
+
       const features = await Feature.query()
         .preload('analyses', (analysis) => {
           analysis
@@ -31,9 +34,13 @@ export default class FeatureController {
         })
         .where('suitness', 'summarization')
 
+      if (!features) {
+        throw new Error('Funcionalidade não encontrada')
+      }
+
       return features
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
     }
   }
 }

@@ -19,8 +19,12 @@ import DalleAiImageGeneration from 'App/Models/DalleAiImageGeneration'
 import AiDocument from 'App/Models/AiDocument'
 import InstagramPost from 'App/Models/InstagramPost'
 import Recharge from 'App/Models/Recharge'
+import { compose } from '@ioc:Adonis/Core/Helpers'
+import { Notifiable } from '@ioc:Verful/Notification/Mixins'
+import Notification from 'App/Models/Notification'
+import SocketIOController from 'App/Controllers/Http/SocketIOController'
 
-export default class User extends BaseModel {
+export default class User extends compose(BaseModel, Notifiable('notifications')) {
   /*
   |--------------------------------------------------------------------------
   | Columns
@@ -37,10 +41,16 @@ export default class User extends BaseModel {
   public email: string
 
   @column({ serializeAs: null })
-  public password: string
+  public password?: string
 
   @column({ serializeAs: null })
   public rememberMeToken?: string
+
+  @column()
+  public socialLogin?: boolean
+
+  @column()
+  public socialService?: string
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
@@ -90,8 +100,8 @@ export default class User extends BaseModel {
 
   @beforeSave()
   public static async hashPassword(user: User) {
-    if (user.$dirty.password) {
-      user.password = await Hash.make(user.password)
+    if (user.$dirty.password && user.password !== undefined) {
+      user.password = await Hash.make(user.password as string)
     }
   }
 
@@ -105,4 +115,95 @@ export default class User extends BaseModel {
   | Methods
   |--------------------------------------------------------------------------
   */
+
+  public async getAllNotifications() {
+    try {
+      const notifications = await Notification.query()
+        .where('notifiable_id', this.id)
+        .orderBy('id', 'desc')
+      return notifications
+    } catch (error) {
+      return { error: error.message }
+    }
+  }
+
+  public async getUnreadNotifications() {
+    try {
+      const notifications = await Notification.query()
+        .where('notifiable_id', this.id)
+        .andWhereNull('read_at')
+        .orderBy('id', 'desc')
+      return notifications
+    } catch (error) {
+      return { error: error.message }
+    }
+  }
+
+  public async getReadNotifications() {
+    try {
+      const notifications = await Notification.query()
+        .where('notifiable_id', this.id)
+        .andWhereNotNull('read_at')
+        .orderBy('id', 'desc')
+      return notifications
+    } catch (error) {
+      return { error: error.message }
+    }
+  }
+
+  public async markAllNotificationsAsRead() {
+    try {
+      const notifications = await Notification.query()
+        .where('notifiable_id', this.id)
+        .andWhereNull('read_at')
+        .update({ read_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss') })
+      return notifications
+    } catch (error) {
+      return { error: error.message }
+    }
+  }
+
+  public async markNotificationAsRead(notification: number) {
+    try {
+      const result = await Notification.query()
+        .where('notifiable_id', this.id)
+        .andWhere('id', notification)
+        .update({ read_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss') })
+
+      return result
+    } catch (error) {
+      return { error: error.message }
+    }
+  }
+
+  public async markNotificationAsUnread(notification: number) {
+    try {
+      const result = await Notification.query()
+        .where('notifiable_id', this.id)
+        .andWhere('id', notification)
+        .update({ read_at: null })
+
+      return result
+    } catch (error) {
+      return { error: error.message }
+    }
+  }
+
+  public async notificationRefresh() {
+    SocketIOController.wsNotificationRefresh(this)
+  }
+
+  public async hasEnoughBalance(): Promise<boolean | { error: string }> {
+    try {
+      const balance = await UserBalance.query().where('user_id', this.id).firstOrFail()
+
+      if (balance.currentBalance <= 0) {
+        SocketIOController.wsInsufficientBalanceAlert(this)
+      }
+
+      return balance.currentBalance >= 0
+    } catch (error) {
+      return { error: error.message }
+    }
+  }
 }

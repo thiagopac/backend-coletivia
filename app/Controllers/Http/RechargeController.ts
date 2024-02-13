@@ -2,18 +2,57 @@ import RechargeOption from 'App/Models/RechargeOption'
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Recharge from 'App/Models/Recharge'
 import User from 'App/Models/User'
+import Env from '@ioc:Adonis/Core/Env'
+import axios from 'axios'
+import UserOperation from 'App/Models/UserOperation'
+import UserNotification from 'App/Notifications/UserNotification'
+import SocketIOController from 'App/Controllers/Http/SocketIOController'
+const CHAVE_PIX = Env.get('CHAVE_PIX')
+const PIX_URL = Env.get('PIX_URL')
+// const TEST_MOCK_PIX_URL = Env.get('TEST_MOCK_PIX_URL')
 
 export default class RechargeController {
+  public async list({ auth, request, response }: HttpContextContract) {
+    try {
+      const user = auth.use('user').user
+      const { page, perPage } = request.qs()
+
+      const query = Recharge.query()
+        .preload('rechargeOption')
+        .where('user_id', user!.id)
+        .orderBy('id', 'desc')
+      const recharges = await query.paginate(page, perPage)
+
+      return recharges
+    } catch (error) {
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
+    }
+  }
+
   public async listOptions({ response }: HttpContextContract) {
     try {
       const options = RechargeOption.query().where('is_available', true)
       if (!options) {
-        throw new Error('Nenhuma opção de recarga encontrada')
+        response.status(404).send({
+          error: 'Nenhuma opção de recarga encontrada',
+        })
       }
 
       return options
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -21,35 +60,76 @@ export default class RechargeController {
     try {
       const recharge = await Recharge.getRechargeWith('uuid', params.uuid)
       if (!recharge) {
-        throw new Error('Recarga não encontrada')
+        response.status(404).send({
+          error: 'Recarga não encontrada',
+        })
       }
+
       const result = {
         uuid: recharge.uuid,
         status: recharge.status,
-        qr_code: (recharge.additionalData as any).pixCopiaECola,
+        qr_code: (recharge.chargeData as any).pixCopiaECola,
         label: recharge.rechargeOption.label,
         description: recharge.rechargeOption.description,
         observations: recharge.rechargeOption.observations,
         value: recharge.rechargeOption.debitedValue,
+        paid_at: (recharge.paymentData as any)?.pix[0].horario,
         created_at: recharge.createdAt,
         updated_at: recharge.updatedAt,
       }
       return result
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
-  public async createRecharge({ auth, request }: HttpContextContract) {
-    const { option } = request.body()
+  public async createRecharge({ auth, response, request }: HttpContextContract) {
+    try {
+      const { option } = request.body()
 
-    const rechargeOption = await RechargeOption.getRechargeOptionWith('uuid', option)
-    const user = await User.find(auth.use('user').user!.id)
-    await user?.load('info')
-    const payload = await this.createPixCobImediata(user!, rechargeOption)
-    const recharge = await Recharge.createRecharge(user!, rechargeOption, payload)
+      const rechargeOption = await RechargeOption.getRechargeOptionWith('uuid', option)
+      if ('error' in rechargeOption) {
+        throw new Error(rechargeOption.error)
+      }
 
-    return recharge
+      const user = await User.find(auth.use('user').user!.id)
+      await user?.load('info')
+      const cobImediata = await this.createPixCobImediata(user!, rechargeOption)
+      const recharge = await Recharge.createRecharge(user!, rechargeOption, cobImediata)
+
+      user!.notifyLater(
+        new UserNotification(
+          user!,
+          'Seu pedido de recarga de créditos foi registrado!',
+          `Veja o pedido de recarga em: ${user?.info.firstName} ${user?.info.lastName} > Meus pedidos`,
+          'success',
+          'success',
+          '/recharge/list'
+        )
+      )
+
+      SocketIOController.wsShowToast(
+        user!,
+        'Seu pedido de recarga de créditos foi registrado!',
+        'success'
+      )
+
+      return recharge
+    } catch (error) {
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
+    }
   }
 
   public async createPixCobImediata(user: User, rechargeOption: RechargeOption): Promise<object> {
@@ -78,42 +158,52 @@ export default class RechargeController {
         dataDeVencimento: tomorrow.toISOString(),
         expiracao: expirationMinutes * 60 * 1000,
       },
-      chave: 'b33a1e83-2703-4d45-9e14-500a2d4aabbd',
+      chave: CHAVE_PIX,
       devedor: devedor,
       valor: {
         original: valorPix,
       },
     }
 
-    payload.pixCopiaECola =
-      '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-426655440000 5204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
-
-    return payload
+    const cobImediata = await axios.post(`${PIX_URL}/pix`, payload)
+    // const cobImediata = await axios.post(`${TEST_MOCK_PIX_URL}/pix`, payload)
+    return cobImediata.data
   }
 
-  // public async updateRecharge(user: User, rechargeOption: RechargeOption): Promise<object> {
-  //TODO: implementar atualização de cobrança via webhook
+  public async updateRecharge({ request, response }: HttpContextContract) {
+    try {
+      const { txid } = request.body().pix[0]
+      const recharge = await Recharge.query().where('transaction_code', txid).firstOrFail()
+      const user = await recharge.related('user').query().firstOrFail()
 
-  //   return {}
-  // }
+      recharge.status = 'paid'
+      recharge.paymentData = request.raw()! as any
+      await recharge.save()
+
+      UserOperation.createOperationRecharge(user!, recharge.value, recharge.id)
+
+      user!.notifyLater(
+        new UserNotification(
+          user!,
+          'Recarga efetuada com sucesso!',
+          'Recebemos o seu pagamento. Seus créditos já podem ser utilizados!',
+          'success',
+          'success',
+          '/recharge/list'
+        )
+      )
+
+      SocketIOController.wsShowToast(user!, 'Recarga efetuada com sucesso!', 'success')
+
+      return response.ok({ message: 'Pedido de recarga atualizado' })
+    } catch (error) {
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
+    }
+  }
 }
-
-/*
-
-"calendario": {
-    "criacao": "string", <- é a data de criação do pagamento
-    "dataDeVencimento": "string", <- é a data de vencimento
-    "expiracao": 0 <- é o tempo em milisegundos em que o qrcode vai expirar
-  }
-
-  "chave": "string", <- é a chave pix do recebedor
-  "devedor": {
-    "cnpj": "string", <- cnpj do devedor se houver
-    "cpf": "string", <- cpf do devedor se houver
-    "nome": "string" <- nome ou razao social do devedor
-  }
-
-  "valor": {
-    "original": 0 <- valor da cobrança
-  }
- */

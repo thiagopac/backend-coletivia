@@ -34,7 +34,7 @@ export default class UsersController {
       const data = request.only(allowedFields) as Partial<UserInfo>
 
       if (!info) {
-        throw new Error('Info not found')
+        throw new Error('Informações não encontradas')
       }
 
       info.merge(data)
@@ -56,11 +56,11 @@ export default class UsersController {
         })
         .orderBy('id', 'desc')
 
-      if (!users) throw new Error('No users found')
-
       return users
     } catch (error) {
-      return response.notFound(error.message)
+      response.status(500).send({
+        error: error.message,
+      })
     }
   }
 }

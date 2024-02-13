@@ -6,9 +6,19 @@ export default class BalanceController {
       const user = auth.use('user').user
       await user?.load('balance')
 
-      return user?.balance
+      if (!user?.balance) {
+        throw new Error('Saldo não encontrado para o usuário')
+      }
+
+      return user.balance
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }

@@ -8,31 +8,71 @@ import Feature from 'App/Models/Feature'
 import DocumentAnalysis from 'App/Models/DocumentAnalysis'
 
 const OPENAI_API_KEY = Env.get('OPENAI_API_KEY')
-// const OPENAI_API_CHAT_COMPLETIONS_URL = `${Env.get('OPENAI_API_CHAT_COMPLETIONS_URL')}`
-
-const TEST_MOCK_API_CHAT_COMPLETIONS_URL = `${Env.get('TEST_MOCK_API_CHAT_COMPLETIONS_URL')}`
+const OPENAI_API_CHAT_COMPLETIONS_URL = `${Env.get('OPENAI_API_CHAT_COMPLETIONS_URL')}`
+// const TEST_MOCK_API_CHAT_COMPLETIONS_URL = `${Env.get('TEST_MOCK_API_CHAT_COMPLETIONS_URL')}`
 
 export default class DocumentController {
+  //list analyses
+  public async listAnalysesForDocument({ auth, params }: HttpContextContract) {
+    try {
+      const user = auth.use('user').user
+      const aiDocument = await AiDocument.query()
+        .select(['id'])
+        .where('uuid', params.document)
+        .first()
+
+      if (!aiDocument) {
+        throw new Error('Documento não encontrado')
+      }
+
+      const analyses = await DocumentAnalysis.query()
+        .select(['uuid', 'feature_id', 'created_at', 'updated_at'])
+        .preload('feature')
+        .where('user_id', user!.id)
+        .andWhere('ai_document_id', aiDocument.id)
+        .orderBy('id', 'desc')
+
+      return analyses
+    } catch (error) {
+      throw new Error(error)
+    }
+  }
+
   public async createDocumentAnalysis({ auth, request, response }: HttpContextContract) {
     try {
       const user = auth.use('user').user!
       const { document, feature } = request.body()
 
+      if (!document || !feature) {
+        throw new Error('Parâmetros inválidos')
+      }
+
       const aiFeature = await Feature.getFeatureWith('uuid', feature)
-      if (!feature) throw new Error('Funcionalidade não encontrada')
+      if ('error' in aiFeature) {
+        throw new Error(aiFeature.error)
+      }
 
       const aiDocument = await AiDocument.getAiDocumentWith('uuid', document)
-      if (!aiDocument) throw new Error('Documento não encontrado')
+      if ('error' in aiDocument) {
+        throw new Error(aiDocument.error)
+      }
 
       const documentAnalysis = await DocumentAnalysis.createDocumentAnalysis(
         user,
         aiFeature,
         aiDocument
       )
+      if ('error' in documentAnalysis) {
+        throw new Error(documentAnalysis.error)
+      }
 
       const analysis = await DocumentAnalysis.getDocumentAnalysisWith('id', documentAnalysis.id)
+      if ('error' in analysis) {
+        throw new Error(analysis.error)
+      }
+
       const behavior: any = analysis.behavior
-      const contextLengthInChars = aiFeature.model.contextLength * 4 - 2000
+      const contextLengthInChars = aiFeature.model.contextLength * 2 - 3000
 
       const content = aiDocument.content
       const parts = this.splitTextIntoParts(content['raw'], contextLengthInChars)
@@ -53,7 +93,7 @@ export default class DocumentController {
 
       const synthesis = await this.synthesizeAnalysis(contentArr, analysis, user)
       contentArr.push({
-        stamp: 'SINTESE',
+        stamp: 'RESUMO',
         analysis: synthesis.analyzed,
       })
 
@@ -62,7 +102,13 @@ export default class DocumentController {
 
       return analysis
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -133,11 +179,15 @@ export default class DocumentController {
         .where('user_id', user!.id)
         .orderBy('id', 'desc')
 
-      if (!documents) throw new Error('Nenhuma análise de documento encontrada')
-
       return documents
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -155,6 +205,9 @@ export default class DocumentController {
       let messages: any[] = []
 
       const documentAnalysis = await DocumentAnalysis.getDocumentAnalysisWith('uuid', document)
+      if ('error' in documentAnalysis) {
+        throw new Error(documentAnalysis.error)
+      }
       const behavior: any = documentAnalysis.behavior
 
       messages = documentAnalysis.messages['messages']
@@ -182,8 +235,8 @@ export default class DocumentController {
         },
       }
 
-      // const openaiResponse = await axios.post(OPENAI_API_CHAT_COMPLETIONS_URL, data, config)
-      const openaiResponse = await axios.post(TEST_MOCK_API_CHAT_COMPLETIONS_URL, data, config)
+      const openaiResponse = await axios.post(OPENAI_API_CHAT_COMPLETIONS_URL, data, config)
+      // const openaiResponse = await axios.post(TEST_MOCK_API_CHAT_COMPLETIONS_URL, data, config)
       const openaiResponseMessage = openaiResponse?.data?.choices?.[0]?.message ?? ''
 
       //trocar o objeto contextualizado pelo prompt real para guardar no histórico
@@ -220,7 +273,13 @@ export default class DocumentController {
       documentAnalysis.save()
       return { result: openaiResponseMessage }
     } catch (error) {
-      response.status(500).json({ message: error.message })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -259,8 +318,8 @@ export default class DocumentController {
         logit_bias: behavior.logit_bias,
       }
 
-      // const response = await axios.post(OPENAI_API_CHAT_COMPLETIONS_URL, data, config)
-      const response = await axios.post(TEST_MOCK_API_CHAT_COMPLETIONS_URL, data, config)
+      const response = await axios.post(OPENAI_API_CHAT_COMPLETIONS_URL, data, config)
+      // const response = await axios.post(TEST_MOCK_API_CHAT_COMPLETIONS_URL, data, config)
 
       const promptTokensCount = response?.data?.usage?.prompt_tokens
       const completionTokensCount = response?.data?.usage?.completion_tokens
@@ -280,7 +339,9 @@ export default class DocumentController {
 
       return response?.data?.choices?.[0]?.message.content ?? ''
     } catch (error) {
-      throw new Error('Erro ao chamar a API de completions')
+      return {
+        error: error.message,
+      }
     }
   }
 
@@ -311,7 +372,9 @@ export default class DocumentController {
 
       return { raw, analyzed }
     } catch (error) {
-      throw new Error('Erro ao sintetizar as análises')
+      return {
+        error: error.message,
+      }
     }
   }
 
@@ -335,11 +398,19 @@ export default class DocumentController {
         .andWhere('uuid', params.uuid)
         .first()
 
-      if (!analysis) throw new Error('Análise de documento não encontrada')
+      if (!analysis) {
+        throw new Error('Análise de documento não encontrada')
+      }
 
       return analysis
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -358,12 +429,20 @@ export default class DocumentController {
         .andWhere('uuid', params.uuid)
         .first()
 
-      if (!analysis) throw new Error('Análise de documento não encontrada')
+      if (!analysis) {
+        throw new Error('Análise de documento não encontrada')
+      }
 
       await analysis.delete()
       return response.noContent()
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }

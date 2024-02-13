@@ -18,9 +18,19 @@ export default class DocumentController {
       const { extension } = request.body()
 
       const document = await AiDocument.createDocument(user, extension)
+      if ('error' in document) {
+        throw new Error(document.error)
+      }
+
       return document
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -43,7 +53,9 @@ export default class DocumentController {
         .first()
 
       if (!aiDocument) {
-        throw new Error('Documento não encontrado')
+        return response.status(404).send({
+          error: 'Documento não encontrado',
+        })
       }
 
       const filename = file!.clientName
@@ -52,12 +64,22 @@ export default class DocumentController {
       aiDocument.extension = extension
 
       const extracted = await this.handleFileExtraction(extension, file!.tmpPath!)
+      if ('error' in extracted) {
+        throw new Error(extracted.error)
+      }
+
       aiDocument.content = JSON.stringify({ raw: extracted[0] }) as any
       await aiDocument.save()
 
       return aiDocument
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -67,7 +89,10 @@ export default class DocumentController {
    * @param filePath - O caminho do arquivo
    * @returns O conteúdo extraído do arquivo
    */
-  private async handleFileExtraction(extension: string, filePath: string): Promise<string[]> {
+  private async handleFileExtraction(
+    extension: string,
+    filePath: string
+  ): Promise<string[] | { error: string }> {
     let raw: string[] = []
     try {
       const buffer = await fs.readFile(filePath)
@@ -78,11 +103,14 @@ export default class DocumentController {
         const value = await mammoth.extractRawText({ buffer: buffer })
         raw = [value.value]
       } else {
-        throw new Error('Tipo de documento inválido')
+        return {
+          error: 'Tipo de documento inválido',
+        }
       }
     } catch (err) {
-      console.error(err)
-      throw new Error('Falha ao extrair o conteúdo do arquivo')
+      return {
+        error: 'Falha ao extrair o conteúdo do arquivo',
+      }
     }
     return raw
   }
@@ -102,11 +130,15 @@ export default class DocumentController {
         .where('user_id', user!.id)
         .orderBy('id', 'desc')
 
-      if (!documents) throw new Error('Nenhum documento encontrado')
-
       return documents
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -126,7 +158,9 @@ export default class DocumentController {
         .andWhere('uuid', params.uuid)
         .first()
 
-      if (!document) throw new Error('Documento não encontrado')
+      if (!document) {
+        return { error: 'Documento não encontrado' }
+      }
 
       const contentRaw = document.content['raw'] as string
       const charCount = contentRaw.length
@@ -142,7 +176,13 @@ export default class DocumentController {
 
       return modifiedDocument
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -161,12 +201,20 @@ export default class DocumentController {
         .andWhere('uuid', params.uuid)
         .first()
 
-      if (!document) throw new Error('Documento não encontrado')
+      if (!document) {
+        return { error: 'Documento não encontrado' }
+      }
 
       await document.delete()
       return response.noContent()
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }

@@ -5,6 +5,8 @@ import MidjourneyImageGeneration from 'App/Models/MidjourneyImageGeneration'
 import { GoogleTranslator } from '@translate-tools/core/translators/GoogleTranslator'
 import { Midjourney } from 'midjourney'
 import Feature from 'App/Models/Feature'
+import SocketIOController from 'App/Controllers/Http/SocketIOController'
+import UserNotification from 'App/Notifications/UserNotification'
 
 const UNOFFICIAL_MIDJOURNEY_SERVER_ID = Env.get('UNOFFICIAL_MIDJOURNEY_SERVER_ID')
 const UNOFFICIAL_MIDJOURNEY_CHANNEL_ID = `${Env.get('UNOFFICIAL_MIDJOURNEY_CHANNEL_ID')}`
@@ -30,11 +32,15 @@ export default class UnofficialMidjourneyImageController {
 
       const imageGenerations = await query.paginate(page, perPage)
 
-      if (!imageGenerations) throw new Error('Nenhuma imagem encontrada')
-
       return imageGenerations
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -55,11 +61,19 @@ export default class UnofficialMidjourneyImageController {
         .andWhere('uuid', params.uuid)
         .first()
 
-      if (!generation) throw new Error('Geração de imagem não encontrada')
+      if (!generation) {
+        throw new Error('Geração de imagem não encontrada')
+      }
 
       return generation
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -78,17 +92,34 @@ export default class UnofficialMidjourneyImageController {
       const translator = new GoogleTranslator()
       let text = prompt
 
+      SocketIOController.wsShowToast(
+        user!,
+        'Sua imagem está sendo gerada, te enviaremos uma notificação assim que ela estiver disponível',
+        'info'
+      )
+
       // Translate single string
       if (translate === true) {
         text = await translator.translate(prompt, 'pt-br', 'en-us').then((translate) => translate)
       }
 
+      text = text.replace(/-/g, '') //removendo hífens pois o Midjourney retorna erro pois encara como flags de comando
+      //TODO: criar um painel de configurações avançadas, onde as configurações setarão essas flags --chaos --weird, etc
+      //VER: https://docs.midjourney.com/docs/parameter-list
+
       const feature = await Feature.getFeatureWith('name', 'midjourney-free-image-generation')
+      if ('error' in feature) {
+        throw new Error(feature.error)
+      }
+
       const imageGeneration = await MidjourneyImageGeneration.createImageGeneration(
         user,
         feature,
         prompt
       )
+      if ('error' in imageGeneration) {
+        throw new Error(imageGeneration.error)
+      }
 
       let imagesArr: any[] = imageGeneration.images['images'] as any[]
 
@@ -100,16 +131,37 @@ export default class UnofficialMidjourneyImageController {
         Ws: true,
       })
       await client.init()
-      const image = await client.Imagine(text, (uri: string) => {
-        console.log('loading', uri)
+      const image = await client.Imagine(text, (uri: string, progress: string) => {
+        // console.log('uri: ', uri)
+        // console.log('progress: ', progress)
+        SocketIOController.wsMidjourneyImageGenerationStatus(user!, uri, progress)
       })
-      console.log({ image })
 
       if (!imagesArr) {
         imagesArr = []
       }
       delete image?.options
       imagesArr.push(image)
+
+      imageGeneration.images = JSON.stringify({
+        images: imagesArr,
+      }) as any
+      imageGeneration.save()
+
+      SocketIOController.wsShowToast(user!, 'Sua imagem está pronta!', 'success')
+
+      user!.notifyLater(
+        new UserNotification(
+          user!,
+          'Sua imagem está pronta!',
+          'Sua imagem foi gerada e já está disponível!',
+          'success',
+          'success',
+          `/image/midjourney/generation/${imageGeneration.uuid}`
+        )
+      )
+
+      console.log('vai criar o spending')
 
       UserOperation.createOperationSpending(
         user,
@@ -119,15 +171,15 @@ export default class UnofficialMidjourneyImageController {
         imageGeneration.id
       )
 
-      imageGeneration.images = JSON.stringify({
-        images: imagesArr,
-      }) as any
-      imageGeneration.save()
-
       return imageGeneration
     } catch (error) {
-      console.log('error: ', error)
-      response.status(500).json({ error })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -145,10 +197,17 @@ export default class UnofficialMidjourneyImageController {
       const { generation, option, index } = request.body()
 
       const feature = await Feature.getFeatureWith('name', 'midjourney-free-image-generation')
+      if ('error' in feature) {
+        throw new Error(feature.error)
+      }
+
       const imageGeneration = await MidjourneyImageGeneration.getImageGenerationWith(
         'uuid',
         generation
       )
+      if ('error' in imageGeneration) {
+        throw new Error(imageGeneration.error)
+      }
 
       const imagesObj: any = imageGeneration.images['images'][option] as any
       let variationsArr: any[] = imageGeneration.variations['variations'] as any[]
@@ -194,8 +253,13 @@ export default class UnofficialMidjourneyImageController {
 
       return response.status(200).json({ variation })
     } catch (error) {
-      console.log('error: ', error)
-      response.status(500).json({ error })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -213,10 +277,17 @@ export default class UnofficialMidjourneyImageController {
       const { generation, option, index } = request.body()
 
       const feature = await Feature.getFeatureWith('name', 'midjourney-free-image-generation')
+      if ('error' in feature) {
+        throw new Error(feature.error)
+      }
+
       const imageGeneration = await MidjourneyImageGeneration.getImageGenerationWith(
         'uuid',
         generation
       )
+      if ('error' in imageGeneration) {
+        throw new Error(imageGeneration.error)
+      }
 
       const imagesObj: any = imageGeneration.images['images'][option] as any
       let upscalesArr: any[] = imageGeneration.upscales['upscales'] as any[]
@@ -263,8 +334,13 @@ export default class UnofficialMidjourneyImageController {
 
       return response.status(200).json({ upscale })
     } catch (error) {
-      console.log('error: ', error)
-      response.status(500).json({ error })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -284,7 +360,13 @@ export default class UnofficialMidjourneyImageController {
 
       return fakeImageGeneration
     } catch (error) {
-      response.status(500).json({ error })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }

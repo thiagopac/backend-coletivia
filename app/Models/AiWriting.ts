@@ -89,7 +89,10 @@ export default class AiWriting extends compose(BaseModel, SoftDeletes) {
   |--------------------------------------------------------------------------
   */
 
-  public static async createAiWriting(user: User, feature: Feature): Promise<AiWriting> {
+  public static async createAiWriting(
+    user: User,
+    feature: Feature
+  ): Promise<AiWriting | { error: string }> {
     try {
       const writing = await AiWriting.create({
         userId: user.id,
@@ -97,15 +100,20 @@ export default class AiWriting extends compose(BaseModel, SoftDeletes) {
         behavior: feature.behavior,
       })
 
-      if (!writing) throw new Error('Erro ao ao criar texto')
+      if (!writing) {
+        return { error: 'Erro ao criar texto' }
+      }
 
       return writing
     } catch (error) {
-      return error.message
+      return { error: error.message }
     }
   }
 
-  public static async getAiWritingWith(field: string, value: any): Promise<AiWriting> {
+  public static async getAiWritingWith(
+    field: string,
+    value: any
+  ): Promise<AiWriting | { error: string }> {
     try {
       const writing = await AiWriting.query()
         .preload('feature', (feature) => {
@@ -114,14 +122,22 @@ export default class AiWriting extends compose(BaseModel, SoftDeletes) {
         .where(field, value)
         .firstOrFail()
 
-      if (!writing) throw new Error('Texto não encontrado')
+      if (!writing) {
+        return { error: 'Texto não encontrado' }
+      }
 
-      writing.feature.model.pricing = await Pricing.latestPriceForModelUuid(
-        writing.feature.model.uuid
-      )
+      const pricing = await Pricing.latestPriceForModelUuid(writing.feature.model.uuid)
+
+      if ('error' in pricing) {
+        // Se pricing for um objeto de erro, retornar o objeto de erro
+        return pricing
+      }
+
+      writing.feature.model.pricing = pricing
+
       return writing
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 }

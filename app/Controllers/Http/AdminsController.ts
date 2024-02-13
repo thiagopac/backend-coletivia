@@ -13,9 +13,13 @@ export default class AdminsController {
 
       response.json(admin)
     } catch (error) {
-      response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -27,7 +31,7 @@ export default class AdminsController {
       const data = request.only(allowedFields) as Partial<AdminInfo>
 
       if (!info) {
-        throw new Error('Info not found')
+        throw new Error('Informaçoes do administrador nao encontradas')
       }
 
       info.merge(data)
@@ -35,9 +39,13 @@ export default class AdminsController {
 
       response.json(info)
     } catch (error) {
-      response.status(500).send({
-        error: error.message,
-      })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -49,11 +57,19 @@ export default class AdminsController {
         })
         .orderBy('id', 'desc')
 
-      if (!admins) throw new Error('No admins found')
+      if (!admins || admins.length === 0) {
+        throw new Error('Nenhum administrador encontrado')
+      }
 
       return admins
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }

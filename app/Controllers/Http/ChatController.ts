@@ -25,12 +25,20 @@ export default class ChatController {
       const user = auth.use('user').user!
 
       const feature = await Feature.getFeatureWith('name', 'free-chat')
-      if (!feature) throw new Error('Funcionalidade não encontrada')
+      if ('error' in feature) {
+        throw new Error(feature.error)
+      }
 
       const chat = await OpenAiChat.createChat(user, feature)
       return chat
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -39,12 +47,20 @@ export default class ChatController {
       const user = auth.use('user').user!
 
       const feature = await Feature.getFeatureWith('name', 'legal-to-informal')
-      if (!feature) throw new Error('Funcionalidade não encontrada')
+      if ('error' in feature) {
+        throw new Error(feature.error)
+      }
 
       const chat = await OpenAiChat.createChat(user, feature)
       return chat
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -53,12 +69,20 @@ export default class ChatController {
       const user = auth.use('user').user!
 
       const feature = await Feature.getFeatureWith('name', 'informal-to-formal')
-      if (!feature) throw new Error('Funcionalidade não encontrada')
+      if ('error' in feature) {
+        throw new Error(feature.error)
+      }
 
       const chat = await OpenAiChat.createChat(user, feature)
       return chat
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -76,7 +100,13 @@ export default class ChatController {
 
       return chats
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -87,6 +117,10 @@ export default class ChatController {
       let messages: any[] = []
 
       const openAiChat = await OpenAiChat.getOpenAiChatWithUuid(chat)
+      if ('error' in openAiChat) {
+        throw new Error(openAiChat.error)
+      }
+
       const behavior: any = openAiChat.behavior
 
       /**
@@ -123,8 +157,8 @@ export default class ChatController {
         logit_bias: behavior.logit_bias,
       }
 
-      console.log('prompt body: ', data.messages)
-      console.log('prompt tokens: ', OpenAiUtils.countTokens(JSON.stringify(data.messages).trim()))
+      // console.log('prompt body: ', data.messages)
+      // console.log('prompt tokens: ', OpenAiUtils.countTokens(JSON.stringify(data.messages).trim()))
 
       const config = {
         headers: {
@@ -180,7 +214,13 @@ export default class ChatController {
       openAiChat.save()
       return { result: openaiResponseMessage }
     } catch (error) {
-      response.status(500).json({ message: error.message })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -192,6 +232,10 @@ export default class ChatController {
       let messages: any[] = []
 
       const openAiChat = await OpenAiChat.getOpenAiChatWithUuid(chat)
+      if ('error' in openAiChat) {
+        throw new Error(openAiChat.error)
+      }
+
       const behavior: any = openAiChat.behavior
 
       /**
@@ -304,7 +348,13 @@ export default class ChatController {
         response.response.end()
       })
     } catch (error) {
-      response.status(500).json({ message: error.message })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -317,11 +367,19 @@ export default class ChatController {
         .where('uuid', params.uuid)
         .first()
 
-      if (!chat) throw new Error('Conversa não encontrada')
+      if (!chat) {
+        throw new Error('Conversa não encontrada')
+      }
 
       return chat
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -392,14 +450,22 @@ export default class ChatController {
         .andWhere('uuid', params.uuid)
         .first()
 
-      if (!chat) throw new Error('Conversa não encontrada')
+      if (!chat) {
+        throw new Error('Conversa não encontrada')
+      }
 
       chat.title = request.input('title')
       await chat.save()
 
       return chat
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -411,11 +477,19 @@ export default class ChatController {
         .andWhere('uuid', params.uuid)
         .first()
 
-      if (!chat) throw new Error('Conversa não encontrada')
+      if (!chat) {
+        throw new Error('Conversa não encontrada')
+      }
 
       return chat
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -427,12 +501,20 @@ export default class ChatController {
         .andWhere('uuid', params.uuid)
         .first()
 
-      if (!chat) throw new Error('Conversa não encontrada')
+      if (!chat) {
+        throw new Error('Conversa não encontrada')
+      }
 
       await chat.delete()
       return response.noContent()
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }

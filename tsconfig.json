@@ -31,7 +31,11 @@
       "@japa/preset-adonis/build/adonis-typings",
       "@adonisjs/lucid",
       "@adonisjs/auth",
-      "adonis-lucid-soft-deletes"
+      "adonis-lucid-soft-deletes",
+      "@verful/notifications",
+      "@adonisjs/mail",
+      "@adonisjs/ally",
+      "@adonisjs/view"
     ]
   }
 }

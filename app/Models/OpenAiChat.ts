@@ -90,7 +90,10 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
   |--------------------------------------------------------------------------
   */
 
-  public static async createChat(user: User, feature: Feature) {
+  public static async createChat(
+    user: User,
+    feature: Feature
+  ): Promise<OpenAiChat | { error: string }> {
     try {
       const chat = await OpenAiChat.create({
         userId: user.id,
@@ -100,31 +103,38 @@ export default class OpenAiChat extends compose(BaseModel, SoftDeletes) {
         messages: { messages: [] } as any,
       })
 
-      if (!chat) throw new Error('Erro ao criar conversa')
+      if (!chat) {
+        return { error: 'Erro ao criar conversa' }
+      }
 
       return chat
     } catch (error) {
-      return error.message
+      return { error: error.message }
     }
   }
 
-  public static async getOpenAiChatWithUuid(uuid: string): Promise<OpenAiChat> {
+  public static async getOpenAiChatWithUuid(uuid: string): Promise<OpenAiChat | { error: string }> {
     try {
       const chat = await OpenAiChat.query()
         .preload('feature', (query) => query.preload('model'))
         .where('uuid', uuid)
         .firstOrFail()
 
-      if (!chat) throw new Error('Chat não encontrado ou não disponível')
+      if (!chat) {
+        return { error: 'Chat não encontrado ou não disponível' }
+      }
 
       const pricing = await Pricing.latestPriceForModelUuid(chat.feature.model.uuid)
-      if (!pricing) throw new Error('Precificação para modelo não encontrado')
+
+      if ('error' in pricing) {
+        return pricing
+      }
 
       chat.feature.model.pricing = pricing
 
       return chat
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 }

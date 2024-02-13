@@ -19,11 +19,19 @@ export default class DalleImageController {
         .where('user_id', user!.id)
         .orderBy('id', 'desc')
 
-      if (!imageGenerations) throw new Error('Nenhuma imagem encontrada')
+      if (!imageGenerations || imageGenerations.length === 0) {
+        throw new Error('Nenhuma imagem encontrada')
+      }
 
       return imageGenerations
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -40,12 +48,19 @@ export default class DalleImageController {
       }
 
       const feature = await Feature.getFeatureWith('name', 'dalle-free-image-generation')
+      if ('error' in feature) {
+        throw new Error(feature.error)
+      }
+
       const imageGeneration = await DalleAiImageGeneration.createImageGeneration(
         user,
         feature,
         size,
         prompt
       )
+      if ('error' in imageGeneration) {
+        throw new Error(imageGeneration.error)
+      }
 
       const data = {
         prompt: text,
@@ -65,7 +80,7 @@ export default class DalleImageController {
 
       const openaiResponse = await axios.post(OPENAI_API_IMAGE_GENERATIONS_URL, data, config)
       const openaiResponseData = openaiResponse?.data
-      console.log('openaiResponseData: ', openaiResponseData)
+      // console.log('openaiResponseData: ', openaiResponseData)
 
       const modelPricingVariation = await Pricing.query()
         .where('variation', size)
@@ -84,8 +99,13 @@ export default class DalleImageController {
       imageGeneration.save()
       return imageGeneration
     } catch (error) {
-      console.log('error: ', error)
-      response.status(500).json({ error })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -103,7 +123,13 @@ export default class DalleImageController {
 
       return fakeImageGeneration
     } catch (error) {
-      response.status(500).json({ error })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 }

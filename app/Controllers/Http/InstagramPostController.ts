@@ -7,7 +7,6 @@ import { GoogleTranslator } from '@translate-tools/core/translators/GoogleTransl
 import { Midjourney } from 'midjourney'
 import Feature from 'App/Models/Feature'
 import InstagramPost from 'App/Models/InstagramPost'
-import OpenAiUtils from '../../../Utils/OpenAiUtils'
 import Utils from '../../../Utils/Utils'
 import axios from 'axios'
 import User from 'App/Models/User'
@@ -41,13 +40,15 @@ export default class InstagramPostController {
 
       const posts = await query.paginate(page, perPage)
 
-      if (!posts) {
-        throw new Error('Nenhum post encontrado')
-      }
-
       return posts
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -65,6 +66,9 @@ export default class InstagramPostController {
   }: HttpContextContract): Promise<InstagramPost | void> {
     try {
       const user = auth.use('user').user!
+      if ((await user.hasEnoughBalance()) === false) {
+        throw new Error('Saldo insuficiente')
+      }
       const post = await InstagramPost.query()
         .preload('aiWriting')
         .preload('midjourneyImageGeneration')
@@ -73,12 +77,20 @@ export default class InstagramPostController {
         .first()
 
       if (!post) {
-        throw new Error('Post não encontrado')
+        return response.status(404).send({
+          error: 'Post não encontrado',
+        })
       }
 
       return post
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -96,10 +108,19 @@ export default class InstagramPostController {
     try {
       const user = auth.use('user').user!
       const post = await InstagramPost.createInstagramPost(user)
+      if ('error' in post) {
+        throw new Error(post.error)
+      }
 
       return post
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -110,34 +131,47 @@ export default class InstagramPostController {
    * @returns {Promise<InstagramPost>} - A promise that resolves to the updated InstagramPost object with generated text content.
    * @throws {Error} - If an error occurs during the generation process.
    */
-  public async generateTextPost({
-    auth,
-    request,
-    response,
-  }: HttpContextContract): Promise<InstagramPost | void> {
+  public async generateTextPost({ auth, request, response }: HttpContextContract) {
     try {
       const user = auth.use('user').user!
       const { post, prompt } = request.body()
-      let instagramPost = await InstagramPost.query().where('uuid', post).firstOrFail()
+      let instagramPost = await InstagramPost.query().where('uuid', post).first()
+      if (!instagramPost) {
+        throw new Error('Post de Instagram não encontrado')
+      }
 
-      let writing: AiWriting
+      let writing: any
 
       if (instagramPost.aiWritingId === null) {
         const featureText = await Feature.getFeatureWith('name', 'Post de Instagram - Texto')
 
-        if (!featureText) {
-          throw new Error('Funcionalidade de Post de Instagram Texto não encontrada')
+        if ('error' in featureText) {
+          throw new Error(featureText.error)
         }
 
-        writing = await AiWriting.createAiWriting(user, featureText)
+        const result = await AiWriting.createAiWriting(user, featureText)
+
+        if ('error' in result) {
+          throw new Error(result.error)
+        }
+
+        writing = result
+
         instagramPost.aiWritingId = writing.id
         await instagramPost.save()
       } else {
         writing = await AiWriting.getAiWritingWith('id', instagramPost.aiWritingId)
       }
 
-      const aiWriting = await AiWriting.getAiWritingWith('id', writing.id)
+      const result = await AiWriting.getAiWritingWith('id', writing.id)
+
+      if ('error' in result) {
+        throw new Error(result.error)
+      }
+
+      const aiWriting: AiWriting = result
       const behavior: any = aiWriting.behavior
+
       const promptContext = behavior['prompt_context']
       const message = { role: 'user', content: `${promptContext}${prompt}` }
 
@@ -151,9 +185,6 @@ export default class InstagramPostController {
         logit_bias: behavior.logit_bias,
       }
 
-      console.log('prompt body: ', data.messages)
-      console.log('prompt tokens: ', OpenAiUtils.countTokens(JSON.stringify(data.messages).trim()))
-
       const config = {
         headers: {
           'Content-Type': 'application/json',
@@ -162,7 +193,6 @@ export default class InstagramPostController {
       }
 
       const openaiResponse = await axios.post(OPENAI_API_CHAT_COMPLETIONS_URL, data, config)
-      // const openaiResponse = await axios.post(TEST_MOCK_API_CHAT_COMPLETIONS_URL, data, config)
       const openaiResponseMessage = openaiResponse?.data?.choices?.[0]?.message.content ?? ''
 
       const promptTokensCount = openaiResponse?.data?.usage?.prompt_tokens
@@ -185,14 +215,20 @@ export default class InstagramPostController {
       aiWriting.text = openaiResponseMessage
       aiWriting.save()
 
-      instagramPost = await InstagramPost.query()
-        .preload('aiWriting')
-        .where('uuid', post)
-        .firstOrFail()
+      instagramPost = await InstagramPost.query().preload('aiWriting').where('uuid', post).first()
+      if (!instagramPost) {
+        throw new Error('Post de Instagram não encontrado')
+      }
 
       return instagramPost
     } catch (error) {
-      response.status(500).json({ message: error.message })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -212,9 +248,15 @@ export default class InstagramPostController {
       const user = auth.use('user').user!
       const { post, textPost } = request.body()
       const instagramPost = await InstagramPost.query().where('uuid', post).firstOrFail()
-      const aiWriting = await AiWriting.getAiWritingWith('id', instagramPost.aiWritingId)
+      const result = await AiWriting.getAiWritingWith('id', instagramPost.aiWritingId)
 
+      if ('error' in result) {
+        throw new Error(result.error)
+      }
+
+      const aiWriting: AiWriting = result as AiWriting
       const behavior: any = aiWriting.behavior
+
       const promptImage = behavior['prompt_image']
       const message = { role: 'user', content: `${promptImage}${textPost}` }
 
@@ -228,8 +270,8 @@ export default class InstagramPostController {
         logit_bias: behavior.logit_bias,
       }
 
-      console.log('prompt body: ', data.messages)
-      console.log('prompt tokens: ', OpenAiUtils.countTokens(JSON.stringify(data.messages).trim()))
+      // console.log('prompt body: ', data.messages)
+      // console.log('prompt tokens: ', OpenAiUtils.countTokens(JSON.stringify(data.messages).trim()))
 
       const config = {
         headers: {
@@ -260,7 +302,13 @@ export default class InstagramPostController {
 
       return { imagine: openaiResponseMessage }
     } catch (error) {
-      response.status(500).json({ message: error.message })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 
@@ -274,7 +322,7 @@ export default class InstagramPostController {
   public async generateImagePost({
     auth,
     request,
-  }: HttpContextContract): Promise<InstagramPost | void> {
+  }: HttpContextContract): Promise<InstagramPost | { error: string }> {
     const user = auth.use('user').user!
     const { post, imagine, translate, size } = request.body()
 
@@ -298,19 +346,27 @@ export default class InstagramPostController {
     text = `${Utils.removeHyphens(text)} ${suffix}`
 
     let instagramPost = await InstagramPost.query().where('uuid', post).firstOrFail()
-    let generation: MidjourneyImageGeneration
+
+    let generation: any
 
     if (instagramPost.midjourneyImageGenerationId === null) {
       const featureImage = await Feature.getFeatureWith('name', 'Post de Instagram - Imagem')
-      if (!featureImage) {
-        throw new Error('Funcionalidade de Post de Instagram Imagem não encontrada')
+
+      if ('error' in featureImage) {
+        throw new Error(featureImage.error)
       }
 
-      generation = await MidjourneyImageGeneration.createImageGeneration(
+      const result = await MidjourneyImageGeneration.createImageGeneration(
         user,
         featureImage,
         imagine
       )
+
+      if ('error' in result) {
+        throw new Error(result.error)
+      }
+
+      generation = result as MidjourneyImageGeneration
 
       instagramPost.midjourneyImageGenerationId = generation.id
       await instagramPost.save()
@@ -325,6 +381,10 @@ export default class InstagramPostController {
       'id',
       generation.id
     )
+
+    if ('error' in midjourneyImageGeneration) {
+      throw new Error(midjourneyImageGeneration.error)
+    }
 
     let imagesArr: any[] = midjourneyImageGeneration.images['images'] as any[]
 
@@ -361,7 +421,14 @@ export default class InstagramPostController {
     }) as any
 
     midjourneyImageGeneration.save()
-    instagramPost = await InstagramPost.getInstagramPostWith('uuid', post)
+
+    const instagramPostOrError = await InstagramPost.getInstagramPostWith('uuid', post)
+
+    if ('error' in instagramPostOrError) {
+      throw new Error(instagramPostOrError.error)
+    }
+
+    instagramPost = instagramPostOrError
 
     return instagramPost
   }
@@ -370,29 +437,40 @@ export default class InstagramPostController {
    * Upscales an image for an Instagram post.
    *
    * @param {HttpContextContract} ctx - The HTTP context containing the authentication, request, and response objects.
-   * @returns {Promise<InstagramPost>} - A promise that resolves to the updated InstagramPost object with upscaled image.
+   * @returns {Promise<InstagramPost | { error: string }>} - A promise that resolves to the updated InstagramPost object with upscaled image, or an object with an error message.
    * @throws {Error} - If an error occurs during the upscaling process.
    */
   public async upscaleImage({
     auth,
     request,
     response,
-  }: HttpContextContract): Promise<InstagramPost | void> {
+  }: HttpContextContract): Promise<InstagramPost | { error: string }> {
     try {
       const user = auth.use('user').user!
       const { post, option, index } = request.body()
 
       let instagramPost = await InstagramPost.getInstagramPostWith('uuid', post)
 
+      if ('error' in instagramPost) {
+        return {
+          error: instagramPost.error,
+        }
+      }
+
       const feature = await Feature.getFeatureWith('name', 'Post de Instagram - Imagem')
-      if (!feature) {
-        throw new Error('Funcionalidade de Post de Instagram Imagem não encontrada')
+
+      if ('error' in feature) {
+        throw new Error(feature.error)
       }
 
       const imageGeneration = await MidjourneyImageGeneration.getImageGenerationWith(
         'uuid',
         instagramPost.midjourneyImageGeneration.uuid
       )
+
+      if ('error' in imageGeneration) {
+        throw new Error(imageGeneration.error)
+      }
 
       const imagesObj: any = imageGeneration.images['images'][option] as any
       let upscalesArr: any[] = imageGeneration.upscales['upscales'] as any[]
@@ -442,8 +520,13 @@ export default class InstagramPostController {
 
       return instagramPost
     } catch (error) {
-      console.log('error: ', error)
-      response.status(500).json({ error })
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // }) as any
     }
   }
 
@@ -487,7 +570,13 @@ export default class InstagramPostController {
       await post.delete()
       return response.noContent()
     } catch (error) {
-      return response.notFound(error.message)
+      throw new Error(error)
+      // return response.status(500).send({
+      //   error: {
+      //     message: error.message,
+      //     stack: error.stack,
+      //   },
+      // })
     }
   }
 

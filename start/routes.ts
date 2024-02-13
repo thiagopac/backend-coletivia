@@ -23,9 +23,18 @@ import Route from '@ioc:Adonis/Core/Route'
 Route.group(() => {
   //non-authenticated routes
   Route.group(() => {
-    Route.post('auth/register', 'AuthController.register')
-    Route.post('auth/login', 'AuthController.login')
+    Route.group(() => {
+      Route.post('register', 'AuthController.register')
+      Route.post('login', 'AuthController.login')
+      Route.post('forgot-password', 'AuthController.forgotPassword')
+      Route.post('reset-password', 'AuthController.resetPasswordWithToken')
+      Route.post('user-exists', 'AuthController.userExists')
+    }).prefix('/auth')
+
     Route.post('admin-auth/login', 'AdminAuthController.login')
+
+    Route.get('/google/redirect', 'AuthController.redirect')
+    Route.get('/google/callback', 'AuthController.callback')
 
     Route.post('generative-text/fake-stream', 'GenerativeAITextController.fakeStream')
 
@@ -33,6 +42,20 @@ Route.group(() => {
     Route.get('generative-text/stream-random-text', 'GenerativeAITextController.streamRandomText')
 
     Route.get('tests/text-to-stream', 'TestController.getTextInChunks')
+
+    Route.get('policy/:type', 'PolicyController.retrieve')
+
+    Route.group(() => {
+      Route.post('pix', 'RechargeController.updateRecharge')
+    }).prefix('/webhook')
+
+    Route.group(() => {
+      Route.get('fetch-currency-rate-usd-brl', 'CurrencyRateController.fetchUsdBrl')
+    }).prefix('/scheduled')
+
+    Route.group(() => {
+      Route.get('mail', 'TemplateViewController.welcome')
+    }).prefix('/views')
   })
 
   //user-authenticated routes
@@ -70,9 +93,9 @@ Route.group(() => {
       Route.get(':uuid', 'ChatController.retrieveChat')
       Route.get(':uuid/messages', 'ChatController.messages')
 
-      // Route.post('send-messages', 'ChatController.createMessage')
+      Route.post('send-messages', 'ChatController.createMessage')
       // Route.post('send-messages', 'GenerativeAITextController.fakeStream')
-      Route.post('send-messages', 'GenerativeAITextController.streamRandomText')
+      // Route.post('send-messages', 'GenerativeAITextController.streamRandomText')
       Route.post('continue', 'GenerativeAITextController.streamRandomText')
 
       Route.post('send-messages-single', 'ChatController.createMessageSingle')
@@ -99,6 +122,10 @@ Route.group(() => {
       Route.group(() => {
         Route.post('analyze', 'DocumentAnalysisController.createDocumentAnalysis')
         Route.get('list', 'DocumentAnalysisController.list')
+        Route.get(
+          'list-for-document/:document',
+          'DocumentAnalysisController.listAnalysesForDocument'
+        )
         Route.get(':uuid', 'DocumentAnalysisController.retrieveDocumentAnalysis')
         Route.delete(':uuid/delete', 'DocumentAnalysisController.deleteDocumentAnalysis')
       }).prefix('analysis')
@@ -137,10 +164,18 @@ Route.group(() => {
     }).prefix('/operation')
 
     Route.group(() => {
+      Route.get('list', 'RechargeController.list')
       Route.get('options', 'RechargeController.listOptions')
       Route.post('checkout', 'RechargeController.createRecharge')
       Route.get('retrieve/:uuid', 'RechargeController.retrieve')
     }).prefix('/recharge')
+
+    Route.group(() => {
+      Route.get('list/:type', 'NotificationController.list')
+      Route.post('mark-as-read', 'NotificationController.markAsRead')
+      Route.post('mark-as-unread', 'NotificationController.markAsUnread')
+      Route.post('mark-all-as-read', 'NotificationController.markAllAsRead')
+    }).prefix('/notification')
   }).middleware('auth:user')
 
   // admin-authenticated routes
@@ -158,8 +193,5 @@ Route.group(() => {
         Route.get('list', 'AdminsController.list')
       }).prefix('/admin')
     }).prefix('/management')
-    Route.group(() => {
-      Route.get('fetch-currency-rate-usd-brl', 'CurrencyRateController.fetchUsdBrl')
-    }).prefix('/scheduled')
   }).middleware('auth:admin')
 }).prefix('/api')

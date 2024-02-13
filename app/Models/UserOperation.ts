@@ -4,6 +4,8 @@ import User from './User'
 import { v4 as uuidv4 } from 'uuid'
 import Pricing from 'App/Models/Pricing'
 import CurrencyRate from 'App/Models/CurrencyRate'
+import UserBalance from 'App/Models/UserBalance'
+import SocketIOController from 'App/Controllers/Http/SocketIOController'
 
 export default class UserOperation extends BaseModel {
   /*
@@ -41,9 +43,6 @@ export default class UserOperation extends BaseModel {
 
   @column()
   public subjectId: number
-
-  @column()
-  public additionalData: JSON
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
@@ -85,29 +84,29 @@ export default class UserOperation extends BaseModel {
   public static async createOperationRecharge(
     user: User,
     value: number,
-    payload: string,
     rechargeId: number
-  ): Promise<UserOperation> {
+  ): Promise<UserOperation | { error: string }> {
     try {
-      await user?.load('balance')
+      const balance = await UserBalance.findByOrFail('userId', user!.id)
 
       let operation = new UserOperation()
       operation.userId = user!.id
       operation.type = 'recharge'
       operation.value = value
-      operation.currentBalance = Number(user!.balance.currentBalance) + Number(value)
+      operation.currentBalance = Number(balance.currentBalance) + Number(value)
       operation.subjectType = 'recharges'
       operation.subjectId = rechargeId
-      operation.additionalData = JSON.parse(payload)
 
       //atualizar o balanço com o valor final
-      user!.balance.currentBalance = operation.currentBalance
-      await user!.balance.save()
+      balance.currentBalance = Number(balance.currentBalance) + Number(value)
+      await balance.save()
       await operation.save()
+
+      SocketIOController.wsBalanceRefresh(user!)
 
       return operation
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 
@@ -116,16 +115,25 @@ export default class UserOperation extends BaseModel {
     value: number,
     modelPricingId: number,
     subjectType: string,
-    subjectId: number,
-    payload?: string
-  ): Promise<UserOperation> {
+    subjectId: number
+  ): Promise<UserOperation | { error: string }> {
     try {
-      const convertedValueUsdToBrl = await CurrencyRate.convertUsdToBrl(value)
-      const usdBrlRateCurrent = await CurrencyRate.latestRateUsdtoBrl()
-      await user?.load('balance')
+      const convertedValueUsdToBrl = +(await CurrencyRate.convertUsdToBrl(value))
 
-      if (user.balance.currentBalance < value) {
-        throw new Error('Saldo insuficiente para operação')
+      if (!convertedValueUsdToBrl) {
+        throw new Error('Erro ao obter valor conversão de USD para BRL')
+      }
+
+      const usdBrlRateCurrent = await CurrencyRate.latestRateUsdtoBrl()
+
+      if (typeof usdBrlRateCurrent !== 'number') {
+        return { error: usdBrlRateCurrent.error }
+      }
+
+      const balance = await UserBalance.query().where('userId', user!.id).first()
+
+      if (!balance) {
+        throw new Error('Saldo do usuário não encontrado')
       }
 
       let operation = new UserOperation()
@@ -134,23 +142,21 @@ export default class UserOperation extends BaseModel {
       operation.type = 'spending'
       operation.value = convertedValueUsdToBrl
       operation.usdBrlRate = usdBrlRateCurrent
-      operation.currentBalance =
-        Number(user!.balance.currentBalance) - Number(convertedValueUsdToBrl)
+      operation.currentBalance = Number(balance.currentBalance) - convertedValueUsdToBrl
       operation.subjectType = subjectType
       operation.subjectId = subjectId
-      if (payload) {
-        operation.additionalData = JSON.parse(payload)
-      }
+
+      await operation.save()
 
       //atualizar o balanço com o valor final
-      user!.balance.currentBalance = operation.currentBalance
+      balance.currentBalance = Number(balance.currentBalance) - convertedValueUsdToBrl
+      await balance.save()
 
-      await user!.balance.save()
-      await operation.save()
+      SocketIOController.wsBalanceRefresh(user!)
 
       return operation
     } catch (error) {
-      throw new Error(error)
+      return { error: error.message }
     }
   }
 }
