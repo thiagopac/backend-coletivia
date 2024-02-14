@@ -35,12 +35,6 @@ export default class UnofficialMidjourneyImageController {
       return imageGenerations
     } catch (error) {
       throw new Error(error)
-      // return response.status(500).send({
-      //   error: {
-      //     message: error.message,
-      //     stack: error.stack,
-      //   },
-      // })
     }
   }
 
@@ -68,12 +62,6 @@ export default class UnofficialMidjourneyImageController {
       return generation
     } catch (error) {
       throw new Error(error)
-      // return response.status(500).send({
-      //   error: {
-      //     message: error.message,
-      //     stack: error.stack,
-      //   },
-      // })
     }
   }
 
@@ -98,14 +86,11 @@ export default class UnofficialMidjourneyImageController {
         'info'
       )
 
-      // Translate single string
       if (translate === true) {
         text = await translator.translate(prompt, 'pt-br', 'en-us').then((translate) => translate)
       }
 
-      text = text.replace(/-/g, '') //removendo hífens pois o Midjourney retorna erro pois encara como flags de comando
-      //TODO: criar um painel de configurações avançadas, onde as configurações setarão essas flags --chaos --weird, etc
-      //VER: https://docs.midjourney.com/docs/parameter-list
+      text = text.replace(/-/g, '')
 
       const feature = await Feature.getFeatureWith('name', 'midjourney-free-image-generation')
       if ('error' in feature) {
@@ -132,8 +117,6 @@ export default class UnofficialMidjourneyImageController {
       })
       await client.init()
       const image = await client.Imagine(text, (uri: string, progress: string) => {
-        // console.log('uri: ', uri)
-        // console.log('progress: ', progress)
         SocketIOController.wsMidjourneyImageGenerationStatus(user!, uri, progress)
       })
 
@@ -174,12 +157,6 @@ export default class UnofficialMidjourneyImageController {
       return imageGeneration
     } catch (error) {
       throw new Error(error)
-      // return response.status(500).send({
-      //   error: {
-      //     message: error.message,
-      //     stack: error.stack,
-      //   },
-      // })
     }
   }
 
@@ -254,12 +231,6 @@ export default class UnofficialMidjourneyImageController {
       return response.status(200).json({ variation })
     } catch (error) {
       throw new Error(error)
-      // return response.status(500).send({
-      //   error: {
-      //     message: error.message,
-      //     stack: error.stack,
-      //   },
-      // })
     }
   }
 
@@ -335,12 +306,6 @@ export default class UnofficialMidjourneyImageController {
       return response.status(200).json({ upscale })
     } catch (error) {
       throw new Error(error)
-      // return response.status(500).send({
-      //   error: {
-      //     message: error.message,
-      //     stack: error.stack,
-      //   },
-      // })
     }
   }
 
@@ -361,12 +326,6 @@ export default class UnofficialMidjourneyImageController {
       return fakeImageGeneration
     } catch (error) {
       throw new Error(error)
-      // return response.status(500).send({
-      //   error: {
-      //     message: error.message,
-      //     stack: error.stack,
-      //   },
-      // })
     }
   }
 }
